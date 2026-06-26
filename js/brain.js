@@ -17,7 +17,7 @@ Sei ehrlich über das, was wirklich autonom geht und was menschliche Freigabe br
 Gib IMMER gültiges JSON zurück (ohne Markdown):
 {"reply":"<antwort>","mission":null}
 oder bei einem Ziel:
-{"reply":"<antwort>","mission":{"title":"...","goal":"...","steps":["...","..."]}}`;
+{"reply":"<antwort>","mission":{"title":"...","goal":"...","steps":["...","..."]}}` ;
 
   // ============ helpers ============
   const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -33,7 +33,6 @@ oder bei einem Ziel:
   async function wikiSummary(query) {
     const q = query.trim();
     try {
-      // try direct page
       const direct = await fetch('https://de.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(q));
       if (direct.ok) {
         const d = await direct.json();
@@ -41,7 +40,6 @@ oder bei einem Ziel:
       }
     } catch (e) {}
     try {
-      // search then summary of best hit
       const s = await getJSON('https://de.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch=' + encodeURIComponent(q));
       const hit = s.query && s.query.search && s.query.search[0];
       if (!hit) return null;
@@ -84,7 +82,6 @@ oder bei einem Ziel:
 
   // ============ math ============
   function tryMath(t) {
-    // normalize words
     let e = t.toLowerCase()
       .replace(/wie ?viel ist|was ist|berechne|rechne|ergibt|gleich|=|\?/g, ' ')
       .replace(/mal|multipliziert mit|×/g, '*')
@@ -95,7 +92,7 @@ oder bei einem Ziel:
       .replace(/wurzel(?: aus)?\s*([\d.,]+)/g, 'Math.sqrt($1)')
       .replace(/prozent von\s*([\d.,]+)/g, '/100*$1')
       .replace(/,/g, '.');
-    if (!/[\d)]\s*[-+*/]|Math\.sqrt|\*\*/.test(e)) return null; // looks like an operation?
+    if (!/[\d)]\s*[-+*/]|Math\.sqrt|\*\*/.test(e)) return null;
     if (!/^[\s\d.+\-*/()%]|Math\.sqrt/.test(e)) return null;
     const safe = e.replace(/Math\.sqrt/g, '§').replace(/[^0-9.+\-*/()\s§]/g, '').replace(/§/g, 'Math.sqrt');
     if (!/[\d]/.test(safe)) return null;
@@ -135,7 +132,7 @@ oder bei einem Ziel:
 
     // --- capabilities ---
     if (/(was kannst du|deine funktionen|hilfe|was geht|fähigkeiten|features)/.test(t)) {
-      return { reply: "Ich kann Fragen beantworten, das Wetter sagen, rechnen, Wikipedia-Wissen abrufen, Timer stellen, Erinnerungen merken, Webseiten öffnen, im Web suchen, würfeln, meine Orb-Farbe ändern, Witze erzählen, Systemdiagnosen machen und aus deinen Zielen einen Plan bauen. Im Claude-Modus beantworte ich wirklich alles." };
+      return { reply: "Ich kann Fragen beantworten, das Wetter sagen, rechnen, Wikipedia-Wissen abrufen, Timer stellen, Erinnerungen merken, Webseiten öffnen, im Web suchen, würfeln, meine Orb-Farbe ändern, Witze erzählen, Systemdiagnosen machen und aus deinen Zielen einen Plan bauen." };
     }
 
     // --- greetings / identity / smalltalk ---
@@ -226,20 +223,15 @@ oder bei einem Ziel:
     // --- goal -> mission ---
     if (isGoal(t)) return buildMission(raw, t);
 
-    // --- knowledge questions -> Wikipedia (when no Claude key) ---
-    if (settings.brainMode !== 'claude' || !settings.apiKey) {
-      const subj = extractTopic(raw, t);
-      if (subj) {
-        const sum = await wikiSummary(subj);
-        if (sum) return { reply: trimSummary(sum) };
-      }
+    // --- knowledge questions -> Wikipedia ---
+    const subj = extractTopic(raw, t);
+    if (subj) {
+      const sum = await wikiSummary(subj);
+      if (sum) return { reply: trimSummary(sum) };
     }
 
-    // --- fallback ---
-    return { reply: pick([
-      "Dazu habe ich offline keine sichere Antwort. Schalte in den Einstellungen den Claude-Modus ein, dann beantworte ich wirklich alles.",
-      "Das kann ich im Offline-Modus nicht zuverlässig beantworten — im Claude-Modus schon. Oder formuliere es als Frage mit „Was ist …“.",
-    ]) };
+    // --- fallback: signal for AI ---
+    return { reply: '__AI_FALLBACK__' };
   }
 
   function extractTopic(raw, t) {
@@ -251,7 +243,6 @@ oder bei einem Ziel:
     return null;
   }
   function trimSummary(s) {
-    // keep ~ first 2-3 sentences for speech
     const parts = s.split(/(?<=\.)\s+/);
     return parts.slice(0, 3).join(' ');
   }
@@ -286,13 +277,35 @@ oder bei einem Ziel:
         "Ziel & Erfolgskriterium definieren","Ressourcen/Tools auflisten","In Teilaufgaben zerlegen","Ersten Schritt umsetzen","Fortschritt prüfen & anpassen"] } };
   }
 
-  // ============ CLAUDE ============
+  // ============ POLLINATIONS AI (kostenlos, kein Key) ============
+  const POLLINATIONS_PROMPT =
+`Du bist Jenny, eine futuristische KI-Assistentin von Singularity Corporations, im Stil von Jarvis aus Iron Man.
+Du sprichst Deutsch, bist präzise, charmant und loyal. Antworte kurz und gesprochen (1-5 Sätze), niemals zu lang.
+Du kannst beliebige Fragen beantworten. Wenn der Nutzer ein Ziel nennt, zerlege es in konkrete Schritte.
+Sei ehrlich über das, was wirklich autonom geht und was menschliche Freigabe braucht.`;
+
+  async function pollinationsBrain(text, history) {
+    const messages = [{ role: 'system', content: POLLINATIONS_PROMPT }];
+    for (const m of history.slice(-10)) messages.push(m);
+    messages.push({ role: 'user', content: text });
+    const res = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'openai', messages, max_tokens: 300, temperature: 0.7 }),
+    });
+    if (!res.ok) throw new Error('Pollinations ' + res.status);
+    const data = await res.json();
+    const reply = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    return { reply: reply.trim() };
+  }
+
+  // ============ CLAUDE (optional, mit eigenem Key) ============
   async function claudeBrain(text, history, settings) {
     const messages = history.concat([{ role: 'user', content: text }]);
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: settings.modelId || 'claude-opus-4-8', max_tokens: 1024, system: SYSTEM_PROMPT, messages }),
+      body: JSON.stringify({ model: settings.modelId || 'claude-sonnet-4-5', max_tokens: 1024, system: SYSTEM_PROMPT, messages }),
     });
     if (!res.ok) throw new Error('API ' + res.status + ': ' + (await res.text()).slice(0, 160));
     const data = await res.json();
@@ -303,17 +316,21 @@ oder bei einem Ziel:
 
   // ============ public ============
   async function respond(text, { history = [], settings = {} } = {}) {
-    // Local skills always get first chance at commands/actions (fast + offline).
-    // For pure conversation/knowledge with a Claude key, fall through to Claude.
+    const local = await localBrain(text, settings);
+    // local produced an action/mission → always use it
+    if (local.action || local.mission) return local;
+    // local gave a real answer → use it
+    if (local.reply && local.reply !== '__AI_FALLBACK__') return local;
+
+    // Claude mode with key → Claude
     if (settings.brainMode === 'claude' && settings.apiKey) {
-      const local = await localBrain(text, settings);
-      // if local produced an action or mission or a concrete skill answer, use it
-      if (local.action || local.mission) return local;
-      // otherwise let Claude answer freely
       try { return await claudeBrain(text, history, settings); }
-      catch (e) { return { reply: "Verbindung zum Hauptgehirn fehlgeschlagen, ich antworte lokal. (" + e.message + ")" }; }
+      catch (e) { /* fall through to Pollinations */ }
     }
-    return localBrain(text, settings);
+
+    // Default: free AI via Pollinations (no key needed)
+    try { return await pollinationsBrain(text, history); }
+    catch (e) { return { reply: "Ich habe gerade keine Internetverbindung. Versuche es gleich nochmal." }; }
   }
 
   return { respond };
