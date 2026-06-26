@@ -119,7 +119,7 @@
     pPos[i*3+2] = r * Math.cos(ph);
   }
   pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-  const pMat = new THREE.PointsMaterial({ color: 0x7ff3ff, size: 0.018, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false });
+  const pMat = new THREE.PointsMaterial({ color: 0x9fe9ff, size: 0.022, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false });
   const particles = new THREE.Points(pGeo, pMat);
   scene.add(particles);
 
@@ -156,7 +156,7 @@
     setLevel(v) { targetLevel = Math.max(0, Math.min(1, v)); },
     setState(state) {
       targetColor = (STATE_COLORS[state] || STATE_COLORS.idle).clone();
-      targetActive = state === 'idle' ? 0.15 : state === 'listening' ? 0.45 : state === 'thinking' ? 0.6 : 0.8;
+      targetActive = state === 'idle' ? 0.22 : state === 'listening' ? 0.55 : state === 'thinking' ? 0.72 : 0.95;
     },
   };
 })();

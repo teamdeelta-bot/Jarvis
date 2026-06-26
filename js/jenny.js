@@ -134,19 +134,30 @@
 
   // ---------- Wire voice events ----------
   JennyVoice.on({
+    listenStart: () => { el.micBtn.classList.add('active'); if (!busy) setState('listening', 'Sprich…'); },
     partial: (t) => { el.subtitle.textContent = t; },
     result: (t) => { handleInput(t); },
     end: () => { el.micBtn.classList.remove('active'); if (!busy) setState('idle'); },
     level: (v) => { window.JennyOrb.setLevel(v); },
+    error: (code) => {
+      el.micBtn.classList.remove('active');
+      const msg = {
+        'mic-denied': "Ich brauche Zugriff auf dein Mikrofon. Erlaube es in den Browser-Einstellungen (Schloss-Symbol neben der Adresse) und tippe wieder auf das Mikro.",
+        'unsupported': "Spracherkennung läuft nur in Google Chrome (Desktop oder Android). Auf iPhone/Safari bitte das Textfeld nutzen — ich antworte trotzdem mit Stimme.",
+        'network': "Die Spracherkennung braucht eine Internetverbindung. Bitte prüfe dein Netz.",
+      }[code] || "Mit der Spracherkennung gab es ein Problem. Versuch es nochmal oder nutze das Textfeld.";
+      speak(msg);
+    },
   });
 
   function toggleMic() {
-    if (JennyVoice.isListening()) { JennyVoice.stop(); return; }
-    if (!JennyVoice.supported) { speak("Spracherkennung wird von diesem Browser nicht unterstützt. Nutze das Textfeld oder Chrome."); return; }
-    JennyVoice.cancelSpeak();
-    el.micBtn.classList.add('active');
+    if (JennyVoice.isListening()) { JennyVoice.stopConversation(); el.micBtn.classList.remove('active'); setState('idle'); return; }
+    if (!JennyVoice.supported) {
+      speak("Spracherkennung läuft nur in Google Chrome. Auf iPhone/Safari nutze bitte das Textfeld — ich antworte trotzdem mit Stimme.");
+      return;
+    }
     setState('listening', 'Sprich…');
-    JennyVoice.listen();
+    JennyVoice.startConversation();
   }
 
   // ---------- UI bindings ----------
@@ -185,7 +196,7 @@
     applyVoiceConfig();
     renderMissions();
     setState('idle');
-    setTimeout(() => speak("Jenny ist online. Alle Systeme bereit. Was ist unser Ziel?"), 400);
+    setTimeout(() => speak("Jenny ist online. Willkommen bei Singularity Corporations. Alle Systeme bereit — was ist unser Ziel?"), 400);
   };
 
   // start orb early (under overlay) so it's warm
