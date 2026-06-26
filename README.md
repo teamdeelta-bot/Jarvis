@@ -19,6 +19,20 @@ python3 -m http.server 8080
 > Doppelklick auf die Datei. Mikrofon & Spracherkennung funktionieren nur
 > in einem echten Server-Kontext. Empfohlen: **Google Chrome**.
 
+### Offline-Setup (optional)
+
+Standardmäßig lädt Three.js (für den Orb) vom CDN. Für 100% Offline-Betrieb
+einmalig lokal vendoren:
+
+```bash
+npm pack three@0.128.0
+tar xzf three-0.128.0.tgz
+mkdir -p vendor && cp package/build/three.min.js vendor/three.min.js
+```
+
+Die `index.html` fällt automatisch auf `vendor/three.min.js` zurück, wenn das
+CDN nicht erreichbar ist.
+
 1. Auf **„System aktivieren"** tippen (gibt dem Browser die Erlaubnis für Audio/Mikro).
 2. Auf das **Mikro** tippen und sprechen — oder unten ins Textfeld tippen.
 3. Beispiel: *„Verkaufe Webseiten für 500 Euro"* → Jenny legt eine Mission mit Plan an.
