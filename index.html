@@ -15,15 +15,20 @@
   <div class="bg-floor"></div>
   <div class="bg-noise"></div>
   <div class="vignette"></div>
+  <!-- HUD corner brackets -->
+  <span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span>
 
   <!-- Top bar -->
   <header class="topbar">
     <div class="brandbox">
       <span class="corp">◆ SINGULARITY CORPORATIONS</span>
       <span class="brand" data-text="JENNY">JENNY</span>
+      <span class="brand-sub">J · E · N · N · Y · &nbsp;Neural Entity</span>
     </div>
     <div class="top-actions">
+      <div class="clock" id="clock">--:--</div>
       <div class="status-chip"><span class="dot" id="statusDot"></span><span id="statusText">Offline</span></div>
+      <button class="icon-btn" id="chatBtn" title="Gespräch">💬<span class="badge" id="chatBadge"></span></button>
       <button class="icon-btn" id="goalsBtn" title="Missionen">◎</button>
       <button class="icon-btn" id="settingsBtn" title="Einstellungen">⚙</button>
     </div>
@@ -42,18 +47,31 @@
       <div class="subtitle" id="subtitle"></div>
     </div>
 
-    <!-- Conversation transcript -->
-    <div class="log" id="log"></div>
-
-    <!-- Quick suggestion chips -->
-    <div class="chips" id="chips">
-      <button class="chip" data-q="Wie ist das Wetter?">☁ Wetter</button>
-      <button class="chip" data-q="Erzähl einen Witz">😄 Witz</button>
-      <button class="chip" data-q="Was ist ein Schwarzes Loch?">🪐 Wissen</button>
-      <button class="chip" data-q="Stell einen Timer auf 5 Minuten">⏱ Timer</button>
-      <button class="chip" data-q="Mach den Orb pink">🎨 Orb-Farbe</button>
-      <button class="chip" data-q="Verkaufe Webseiten für 500 Euro">🎯 Ziel</button>
-    </div>
+    <!-- Feature tiles (Kacheln) -->
+    <section class="tiles" id="tiles">
+      <button class="tile" data-q="Wie ist das Wetter?"><span class="ic">☁️</span><span>Wetter</span></button>
+      <button class="tile" data-q="Was ist ein schwarzes Loch?"><span class="ic">🪐</span><span>Wissen</span></button>
+      <button class="tile" data-fill="Übersetze Guten Morgen auf Englisch"><span class="ic">🌍</span><span>Übersetzen</span></button>
+      <button class="tile" data-q="Was kostet Bitcoin?"><span class="ic">₿</span><span>Krypto</span></button>
+      <button class="tile" data-q="Stell einen Timer auf 5 Minuten"><span class="ic">⏱️</span><span>Timer</span></button>
+      <button class="tile" data-fill="Merke dir: "><span class="ic">📝</span><span>Notiz</span></button>
+      <button class="tile" data-q="Erstelle ein sicheres Passwort"><span class="ic">🔐</span><span>Passwort</span></button>
+      <button class="tile" data-q="Wie viel sind 10 km in Meilen?"><span class="ic">📐</span><span>Umrechnen</span></button>
+      <button class="tile" data-q="Was soll ich heute kochen?"><span class="ic">🍝</span><span>Essen</span></button>
+      <button class="tile" data-q="Erzähl mir einen interessanten Fakt"><span class="ic">🧠</span><span>Fakt</span></button>
+      <button class="tile" data-q="Erzähl einen Witz"><span class="ic">😄</span><span>Witz</span></button>
+      <button class="tile" data-q="Gib mir ein Zitat"><span class="ic">💬</span><span>Zitat</span></button>
+      <button class="tile" data-q="Motivier mich"><span class="ic">💪</span><span>Motivation</span></button>
+      <button class="tile" data-q="Mach eine Atemübung mit mir"><span class="ic">🌬️</span><span>Atmen</span></button>
+      <button class="tile" data-q="Was ist 25 mal 18?"><span class="ic">🧮</span><span>Rechnen</span></button>
+      <button class="tile" data-q="Würfle"><span class="ic">🎲</span><span>Würfeln</span></button>
+      <button class="tile" data-q="Münzwurf"><span class="ic">🪙</span><span>Münze</span></button>
+      <button class="tile" data-q="Mach den Orb cyan"><span class="ic">🎨</span><span>Orb-Farbe</span></button>
+      <button class="tile" data-fill="Spiele Lofi Beats auf YouTube"><span class="ic">🎵</span><span>Musik</span></button>
+      <button class="tile" data-q="Systemdiagnose"><span class="ic">🩺</span><span>Diagnose</span></button>
+      <button class="tile" data-fill="Soll ich heute Sport machen oder chillen?"><span class="ic">🤔</span><span>Entscheidung</span></button>
+      <button class="tile" data-fill="Verkaufe Webseiten für 500 Euro"><span class="ic">🎯</span><span>Ziel</span></button>
+    </section>
   </main>
 
   <!-- Floating command pill -->
@@ -64,6 +82,13 @@
     <input type="text" id="textInput" placeholder="Sprich oder schreibe… frag mich alles" autocomplete="off" />
     <button id="sendBtn" class="send-btn" title="Senden">➤</button>
   </div>
+
+  <!-- Chat panel -->
+  <aside class="panel" id="chatPanel">
+    <div class="panel-head"><h2>Gespräch</h2><button class="icon-btn" id="closeChat">✕</button></div>
+    <div class="panel-body"><div class="log" id="log"><p class="empty-hint">Hier landet euer Gespräch. Sprich mit mir oder tipp unten was ein.</p></div></div>
+    <div class="panel-foot"><button class="ghost-btn" id="clearChat">Verlauf löschen</button></div>
+  </aside>
 
   <!-- Missions panel -->
   <aside class="panel" id="goalsPanel">
@@ -129,6 +154,7 @@
     <div class="boot-corp">◆ SINGULARITY CORPORATIONS</div>
     <div class="boot-orb"></div>
     <h1 data-text="JENNY">JENNY</h1>
+    <p class="boot-acro">J · E · N · N · Y</p>
     <p>Neural Interface · tippe, um zu starten</p>
     <button id="bootBtn">SYSTEM AKTIVIEREN</button>
     <div class="boot-foot">Voice &amp; AI Assistant</div>

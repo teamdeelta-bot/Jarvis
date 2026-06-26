@@ -167,8 +167,34 @@ window.JennyVoice = (function () {
     ss.speak(u);
   }
 
+  // Make text sound human: drop commas/symbols/emoji, expand abbreviations,
+  // so the voice flows instead of reading every comma and symbol aloud.
+  function forSpeech(text) {
+    let s = String(text);
+    // remove emoji & decorative symbols
+    s = s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}◆◎●▸►→·•★☆«»„“”]/gu, ' ');
+    // markdown noise
+    s = s.replace(/[*_`#>|]/g, ' ');
+    // common abbreviations -> full words (TTS mangles these)
+    const ab = { 'z\\.\\s?b\\.': 'zum Beispiel', 'u\\.\\s?a\\.': 'unter anderem', 'd\\.\\s?h\\.': 'das heißt',
+      'bzw\\.': 'beziehungsweise', 'usw\\.': 'und so weiter', 'etc\\.': 'und so weiter', 'ca\\.': 'circa',
+      'inkl\\.': 'inklusive', 'evtl\\.': 'eventuell', 'min\\.': 'Minuten', 'std\\.': 'Stunden' };
+    for (const k in ab) s = s.replace(new RegExp(k, 'gi'), ab[k]);
+    // symbols -> words
+    s = s.replace(/%/g, ' Prozent').replace(/&/g, ' und ').replace(/°\s?c/gi, ' Grad').replace(/€/g, ' Euro').replace(/\$/g, ' Dollar');
+    // the key wish: don't read commas/semicolons aloud
+    s = s.replace(/[,;]/g, ' ');
+    // tidy dashes used as pauses
+    s = s.replace(/\s[–—-]\s/g, ' ');
+    // collapse whitespace
+    s = s.replace(/\s{2,}/g, ' ').trim();
+    return s;
+  }
+
   function speak(text, opts = {}) {
     if (!window.speechSynthesis || !cfg.enabled || !text) { opts.onDone && opts.onDone(); return; }
+    text = forSpeech(text);
+    if (!text) { opts.onDone && opts.onDone(); return; }
     // Pause recognition while speaking so Jenny doesn't hear herself
     if (listening) { try { recognition.stop(); } catch (e) {} }
     if (!voices.length) {

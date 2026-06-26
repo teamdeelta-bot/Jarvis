@@ -3,9 +3,10 @@
   const $ = (id) => document.getElementById(id);
 
   const el = {
-    statusDot: $('statusDot'), statusText: $('statusText'),
-    orbCaption: $('orbCaption'), subtitle: $('subtitle'), log: $('log'), chips: $('chips'),
+    statusDot: $('statusDot'), statusText: $('statusText'), clock: $('clock'),
+    orbCaption: $('orbCaption'), subtitle: $('subtitle'), log: $('log'), tiles: $('tiles'),
     micBtn: $('micBtn'), textInput: $('textInput'), sendBtn: $('sendBtn'),
+    chatBtn: $('chatBtn'), chatBadge: $('chatBadge'), chatPanel: $('chatPanel'), closeChat: $('closeChat'), clearChat: $('clearChat'),
     goalsBtn: $('goalsBtn'), goalsPanel: $('goalsPanel'), closeGoals: $('closeGoals'), goalsList: $('goalsList'),
     settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), closeSettings: $('closeSettings'),
     brainMode: $('brainMode'), claudeSettings: $('claudeSettings'), apiKey: $('apiKey'), modelId: $('modelId'),
@@ -29,8 +30,9 @@
     pitch: store.get('pitch', 1.1),
     rate: store.get('rate', 1.05),
   };
-  let history = [];           // chat history for Claude
+  let history = [];           // chat history for the AI
   let missions = store.get('missions', []);
+  let logEmpty = true;
 
   function setState(s, caption) {
     el.statusDot.className = 'dot ' + (s === 'idle' ? 'online' : s);
@@ -38,6 +40,12 @@
     el.orbCaption.textContent = caption || el.statusText.textContent;
     window.JennyOrb.setState(s);
   }
+
+  // ---------- Live clock ----------
+  function tickClock() {
+    if (el.clock) el.clock.textContent = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  }
+  tickClock(); setInterval(tickClock, 15000);
 
   // ---------- Voice config sync ----------
   function applyVoiceConfig() {
@@ -55,8 +63,8 @@
     if (FEMALE.test(n)) s += 30;
     if (MALE.test(n) && !FEMALE.test(n)) s -= 30;
     if (QUALITY.test(n)) s += 15;
-    if (/desktop/i.test(n)) s -= 8;           // older robotic Windows voices
-    if (v.localService === false) s += 5;      // cloud voices usually nicer
+    if (/desktop/i.test(n)) s -= 8;
+    if (v.localService === false) s += 5;
     return s;
   }
   function bestVoiceURI() {
@@ -72,7 +80,6 @@
     el.voiceSelect.innerHTML = '';
     const de = voices.filter(v => v.lang.startsWith('de')).sort((a,b)=>scoreVoice(b)-scoreVoice(a));
     const rest = voices.filter(v => !v.lang.startsWith('de'));
-    // auto-pick the best young female German voice if user hasn't chosen one
     if (!settings.voiceURI) {
       const best = bestVoiceURI();
       if (best) { settings.voiceURI = best; store.set('voiceURI', best); applyVoiceConfig(); }
@@ -93,15 +100,18 @@
   }
   if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = populateVoices;
 
-  // ---------- Transcript ----------
+  // ---------- Transcript (chat window) ----------
   function addBubble(role, text) {
     if (!text) return;
+    if (logEmpty) { el.log.innerHTML = ''; logEmpty = false; }
     const b = document.createElement('div');
     b.className = 'bubble ' + (role === 'me' ? 'me' : 'jenny');
     b.textContent = text;
     el.log.appendChild(b);
-    while (el.log.children.length > 20) el.log.removeChild(el.log.firstChild);
+    while (el.log.children.length > 40) el.log.removeChild(el.log.firstChild);
     el.log.scrollTop = el.log.scrollHeight;
+    // unread badge when chat panel is closed
+    if (role === 'jenny' && !el.chatPanel.classList.contains('open')) el.chatBadge.classList.add('show');
   }
 
   // ---------- Core interaction ----------
@@ -150,7 +160,7 @@
         setTimeout(() => window.open(a.url, '_blank', 'noopener'), 400);
         return reply;
       case 'orbColor':
-        if (!window.JennyOrb.setColor(a.color)) return `Die Farbe ${a.color} kenne ich nicht. Ich kann z.B. rot, blau, grün, lila, gold oder cyan.`;
+        if (!window.JennyOrb.setColor(a.color)) return `Die Farbe ${a.color} kenn ich nicht. Probier mal rot, blau, grün, lila, gold oder cyan.`;
         return reply;
       case 'orbColorReset':
         window.JennyOrb.resetColor(); return reply;
@@ -158,7 +168,7 @@
         const ms = a.ms, label = a.label;
         setTimeout(() => {
           beep(3);
-          const msg = `Dein Timer über ${label} ist abgelaufen, Boss.`;
+          const msg = `Hey, dein Timer über ${label} ist um.`;
           notify('Timer abgelaufen', msg);
           speak(msg);
         }, ms);
@@ -172,8 +182,12 @@
       }
       case 'listNotes': {
         const notes = store.get('notes', []);
-        if (!notes.length) return "Du hast noch keine Notizen.";
-        return "Deine Notizen: " + notes.slice(0, 5).map((n, i) => `${i + 1}. ${n.text}`).join('. ');
+        if (!notes.length) return "Du hast noch keine Notizen bei mir.";
+        return "Das hast du dir gemerkt: " + notes.slice(0, 5).map((n, i) => `${i + 1}. ${n.text}`).join('. ');
+      }
+      case 'copy': {
+        try { if (navigator.clipboard) navigator.clipboard.writeText(a.text); } catch (e) {}
+        return reply;
       }
       case 'diagnostics':
         setState('thinking', 'Diagnose…'); runDiagnostics(); return "";
@@ -190,15 +204,13 @@
 
   async function runDiagnostics() {
     const parts = [];
-    parts.push(`Uhrzeit ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`);
-    parts.push(navigator.onLine ? "Netzwerkverbindung stabil" : "keine Netzwerkverbindung");
+    parts.push(navigator.onLine ? "Netz steht" : "kein Netz gerade");
     if (navigator.getBattery) {
-      try { const b = await navigator.getBattery(); parts.push(`Energie bei ${Math.round(b.level * 100)} Prozent${b.charging ? ', wird geladen' : ''}`); } catch (e) {}
+      try { const b = await navigator.getBattery(); parts.push(`Akku bei ${Math.round(b.level * 100)} Prozent${b.charging ? ' und am Laden' : ''}`); } catch (e) {}
     }
-    if (navigator.deviceMemory) parts.push(`${navigator.deviceMemory} Gigabyte Arbeitsspeicher`);
-    if (navigator.hardwareConcurrency) parts.push(`${navigator.hardwareConcurrency} Prozessorkerne`);
-    parts.push("Sprachsystem online");
-    const msg = "Systemdiagnose abgeschlossen. " + parts.join(', ') + ". Alle Kernsysteme nominal.";
+    if (navigator.hardwareConcurrency) parts.push(`${navigator.hardwareConcurrency} Kerne am Start`);
+    parts.push("Sprachsystem läuft");
+    const msg = "So, einmal alles durchgecheckt. " + parts.join('. ') + ". Läuft alles rund.";
     speak(msg);
   }
 
@@ -255,7 +267,11 @@
   function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
   // ---------- Panels ----------
-  function openPanel(p) { document.querySelectorAll('.panel').forEach(x => { if (x !== p) x.classList.remove('open'); }); p.classList.add('open'); }
+  function openPanel(p) {
+    document.querySelectorAll('.panel').forEach(x => { if (x !== p) x.classList.remove('open'); });
+    p.classList.add('open');
+    if (p === el.chatPanel) { el.chatBadge.classList.remove('show'); el.log.scrollTop = el.log.scrollHeight; }
+  }
   function closePanel(p) { p.classList.remove('open'); }
 
   // ---------- Wire voice events ----------
@@ -268,10 +284,10 @@
     error: (code) => {
       el.micBtn.classList.remove('active');
       const msg = {
-        'mic-denied': "Ich brauche Zugriff auf dein Mikrofon. Erlaube es in den Browser-Einstellungen (Schloss-Symbol neben der Adresse) und tippe wieder auf das Mikro.",
-        'unsupported': "Spracherkennung läuft nur in Google Chrome (Desktop oder Android). Auf iPhone/Safari bitte das Textfeld nutzen — ich antworte trotzdem mit Stimme.",
-        'network': "Die Spracherkennung braucht eine Internetverbindung. Bitte prüfe dein Netz.",
-      }[code] || "Mit der Spracherkennung gab es ein Problem. Versuch es nochmal oder nutze das Textfeld.";
+        'mic-denied': "Ich brauch kurz Zugriff aufs Mikro. Erlaub's im Browser (Schloss-Symbol neben der Adresse) und tipp wieder aufs Mikro.",
+        'unsupported': "Spracherkennung läuft nur in Google Chrome (Desktop oder Android). Auf iPhone und Safari nimm einfach das Textfeld — ich antworte trotzdem mit Stimme.",
+        'network': "Für die Spracherkennung brauch ich Internet. Schau mal kurz nach deinem Netz.",
+      }[code] || "Mit der Spracherkennung hat was nicht geklappt. Versuch's nochmal oder nimm das Textfeld.";
       speak(msg);
     },
   });
@@ -279,7 +295,7 @@
   function toggleMic() {
     if (JennyVoice.isListening()) { JennyVoice.stopConversation(); el.micBtn.classList.remove('active'); setState('idle'); return; }
     if (!JennyVoice.supported) {
-      speak("Spracherkennung läuft nur in Google Chrome. Auf iPhone/Safari nutze bitte das Textfeld — ich antworte trotzdem mit Stimme.");
+      speak("Spracherkennung läuft nur in Google Chrome. Auf iPhone und Safari nimm bitte das Textfeld — ich antworte trotzdem mit Stimme.");
       return;
     }
     setState('listening', 'Sprich…');
@@ -291,6 +307,9 @@
   el.sendBtn.onclick = () => { const v = el.textInput.value.trim(); el.textInput.value = ''; handleInput(v); };
   el.textInput.addEventListener('keydown', e => { if (e.key === 'Enter') el.sendBtn.click(); });
 
+  el.chatBtn.onclick = () => openPanel(el.chatPanel);
+  el.closeChat.onclick = () => closePanel(el.chatPanel);
+  el.clearChat.onclick = () => { history = []; logEmpty = true; el.log.innerHTML = '<p class="empty-hint">Verlauf gelöscht. Frag mich was Neues.</p>'; };
   el.goalsBtn.onclick = () => openPanel(el.goalsPanel);
   el.closeGoals.onclick = () => closePanel(el.goalsPanel);
   el.settingsBtn.onclick = () => openPanel(el.settingsPanel);
@@ -312,10 +331,13 @@
   el.ttsToggle.onchange = () => { settings.tts = el.ttsToggle.checked; store.set('tts', settings.tts); applyVoiceConfig(); };
   el.pitch.oninput = () => { settings.pitch = +el.pitch.value; el.pitchVal.textContent = settings.pitch; store.set('pitch', settings.pitch); applyVoiceConfig(); };
   el.rate.oninput = () => { settings.rate = +el.rate.value; el.rateVal.textContent = settings.rate; store.set('rate', settings.rate); applyVoiceConfig(); };
-  el.testVoice.onclick = () => { applyVoiceConfig(); JennyVoice.speak("Hi, ich bin Jenny. Schön, dass du da bist — sag mir einfach, was du brauchst."); };
+  el.testVoice.onclick = () => { applyVoiceConfig(); JennyVoice.speak("Hi ich bin Jenny. Schön dass du da bist — sag mir einfach was du brauchst."); };
 
-  // suggestion chips
-  if (el.chips) el.chips.querySelectorAll('.chip').forEach(c => c.onclick = () => handleInput(c.dataset.q));
+  // feature tiles (Kacheln)
+  if (el.tiles) el.tiles.querySelectorAll('.tile').forEach(c => c.onclick = () => {
+    if (c.dataset.fill != null) { el.textInput.value = c.dataset.fill; el.textInput.focus(); }
+    else if (c.dataset.q) handleInput(c.dataset.q);
+  });
 
   // Claude connection test
   el.testClaude.onclick = async () => {
@@ -354,7 +376,7 @@
     applyVoiceConfig();
     renderMissions();
     setState('idle');
-    setTimeout(() => speak("Jenny ist online. Willkommen bei Singularity Corporations. Du kannst mich alles fragen — Wissen, Wetter, Rechnen, Timer, Webseiten öffnen oder ein Ziel nennen. Womit fangen wir an?"), 400);
+    setTimeout(() => speak("Hey ich bin Jenny und ab jetzt am Start. Frag mich einfach alles — Wissen, Wetter, Rechnen, Übersetzen, Timer oder sag mir ein Ziel. Womit fangen wir an?"), 400);
     try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
   };
 
