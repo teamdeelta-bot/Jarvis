@@ -4,74 +4,70 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>JENNY · Singularity Corporations</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='35%25' cy='30%25'%3E%3Cstop offset='0' stop-color='%237ff3ff'/%3E%3Cstop offset='55%25' stop-color='%231b9dff'/%3E%3Cstop offset='100%25' stop-color='%2306122e'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='26' fill='url(%23g)'/%3E%3Ccircle cx='32' cy='32' r='30' fill='none' stroke='%2338e8ff' stroke-width='2' stroke-dasharray='4 6'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='35%25' cy='30%25'%3E%3Cstop offset='0' stop-color='%23ff7be6'/%3E%3Cstop offset='50%25' stop-color='%23a64bff'/%3E%3Cstop offset='100%25' stop-color='%23120726'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='26' fill='url(%23g)'/%3E%3Ccircle cx='32' cy='32' r='30' fill='none' stroke='%232bf5ff' stroke-width='2' stroke-dasharray='3 6'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <!-- Background FX -->
-  <div class="bg-grid"></div>
-  <div class="bg-aurora"></div>
-  <div class="bg-stars"></div>
-  <div class="bg-scanlines"></div>
+  <div class="bg-plasma"></div>
+  <div class="bg-floor"></div>
+  <div class="bg-noise"></div>
   <div class="vignette"></div>
 
-  <!-- HUD corner brackets -->
-  <div class="corner tl"></div>
-  <div class="corner tr"></div>
-  <div class="corner bl"></div>
-  <div class="corner br"></div>
-
-  <!-- Top HUD bar -->
-  <header class="hud-top">
-    <div class="hud-left">
-      <span class="corp">◇ SINGULARITY&nbsp;CORPORATIONS</span>
-      <span class="brand" data-text="J.E.N.N.Y">J.E.N.N.Y</span>
-      <span class="brand-sub">Just&nbsp;Enhanced&nbsp;Neural&nbsp;Network&nbsp;for&nbsp;You</span>
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brandbox">
+      <span class="corp">◆ SINGULARITY CORPORATIONS</span>
+      <span class="brand" data-text="JENNY">JENNY</span>
     </div>
-    <div class="hud-right">
-      <div class="status-chip" id="statusChip">
-        <span class="dot" id="statusDot"></span>
-        <span id="statusText">Offline</span>
-      </div>
+    <div class="top-actions">
+      <div class="status-chip"><span class="dot" id="statusDot"></span><span id="statusText">Offline</span></div>
+      <button class="icon-btn" id="goalsBtn" title="Missionen">◎</button>
       <button class="icon-btn" id="settingsBtn" title="Einstellungen">⚙</button>
     </div>
   </header>
 
   <!-- Main stage -->
   <main class="stage">
-    <!-- The Orb -->
-    <div class="orb-wrap" id="orbWrap">
-      <canvas id="orbCanvas"></canvas>
-      <div class="orb-ring ring1"></div>
-      <div class="orb-ring ring2"></div>
-      <div class="orb-ring ring3"></div>
-      <div class="orb-caption" id="orbCaption">Bereit.</div>
+    <div class="orb-stage">
+      <div class="orb-wrap" id="orbWrap">
+        <canvas id="orbCanvas"></canvas>
+        <div class="halo h1"></div>
+        <div class="halo h2"></div>
+        <div class="halo h3"></div>
+      </div>
+      <div class="orb-caption" id="orbCaption">Bereit</div>
+      <div class="subtitle" id="subtitle"></div>
     </div>
 
-    <!-- Live transcript / subtitle -->
-    <div class="subtitle" id="subtitle"></div>
+    <!-- Conversation transcript -->
+    <div class="log" id="log"></div>
 
-    <!-- Control dock -->
-    <div class="dock">
-      <button class="mic-btn" id="micBtn" title="Sprechen">
-        <svg viewBox="0 0 24 24" width="34" height="34"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
-      </button>
-      <div class="text-input-wrap">
-        <input type="text" id="textInput" placeholder="Frag mich alles… „Wetter in Berlin“, „öffne YouTube“, „Timer 5 Minuten“, „was ist ein Schwarzes Loch“" autocomplete="off" />
-        <button id="sendBtn" class="send-btn">▸</button>
-      </div>
-      <button class="icon-btn big" id="goalsBtn" title="Ziele & Aufgaben">⊞</button>
+    <!-- Quick suggestion chips -->
+    <div class="chips" id="chips">
+      <button class="chip" data-q="Wie ist das Wetter?">☁ Wetter</button>
+      <button class="chip" data-q="Erzähl einen Witz">😄 Witz</button>
+      <button class="chip" data-q="Was ist ein Schwarzes Loch?">🪐 Wissen</button>
+      <button class="chip" data-q="Stell einen Timer auf 5 Minuten">⏱ Timer</button>
+      <button class="chip" data-q="Mach den Orb pink">🎨 Orb-Farbe</button>
+      <button class="chip" data-q="Verkaufe Webseiten für 500 Euro">🎯 Ziel</button>
     </div>
   </main>
 
-  <!-- Goals / mission panel -->
+  <!-- Floating command pill -->
+  <div class="command">
+    <button class="mic-btn" id="micBtn" title="Sprechen">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+    </button>
+    <input type="text" id="textInput" placeholder="Sprich oder schreibe… frag mich alles" autocomplete="off" />
+    <button id="sendBtn" class="send-btn" title="Senden">➤</button>
+  </div>
+
+  <!-- Missions panel -->
   <aside class="panel" id="goalsPanel">
-    <div class="panel-head">
-      <h2>Missionen</h2>
-      <button class="icon-btn" id="closeGoals">✕</button>
-    </div>
+    <div class="panel-head"><h2>Missionen</h2><button class="icon-btn" id="closeGoals">✕</button></div>
     <div class="panel-body" id="goalsList">
       <p class="empty-hint">Noch keine Missionen. Gib Jenny ein Ziel und sie erstellt einen Plan.</p>
     </div>
@@ -79,16 +75,13 @@
 
   <!-- Settings panel -->
   <aside class="panel" id="settingsPanel">
-    <div class="panel-head">
-      <h2>Einstellungen</h2>
-      <button class="icon-btn" id="closeSettings">✕</button>
-    </div>
+    <div class="panel-head"><h2>Einstellungen</h2><button class="icon-btn" id="closeSettings">✕</button></div>
     <div class="panel-body">
       <label class="field">
         <span>KI-Modus</span>
         <select id="brainMode">
-          <option value="local">Offline (Demo-Gehirn, ohne Internet)</option>
-          <option value="claude">Claude API (echtes Denken)</option>
+          <option value="local">Offline (Skills ohne Internet)</option>
+          <option value="claude">Claude API (beantwortet alles)</option>
         </select>
       </label>
 
@@ -96,17 +89,21 @@
         <label class="field">
           <span>Anthropic API-Key</span>
           <input type="password" id="apiKey" placeholder="sk-ant-…" />
-          <small>Wird nur lokal in deinem Browser gespeichert.</small>
+          <small>Nur lokal im Browser gespeichert. Key gibt's auf console.anthropic.com</small>
         </label>
         <label class="field">
           <span>Modell</span>
-          <input type="text" id="modelId" value="claude-opus-4-8" />
+          <input type="text" id="modelId" value="claude-sonnet-4-5" />
+          <small>z.B. claude-sonnet-4-5, claude-opus-4-1, claude-3-5-haiku-latest</small>
         </label>
+        <button class="ghost-btn" id="testClaude">🔌 Claude-Verbindung testen</button>
+        <div class="test-result" id="claudeResult"></div>
       </div>
 
       <label class="field">
         <span>Stimme</span>
         <select id="voiceSelect"></select>
+        <small id="voiceHint"></small>
       </label>
 
       <label class="field row">
@@ -115,35 +112,30 @@
       </label>
 
       <label class="field">
-        <span>Tonhöhe ({<span id="pitchVal">1.0</span>})</span>
-        <input type="range" id="pitch" min="0" max="2" step="0.1" value="1" />
+        <span>Tonhöhe (<span id="pitchVal">1.1</span>) — höher = jünger</span>
+        <input type="range" id="pitch" min="0.5" max="2" step="0.05" value="1.1" />
       </label>
       <label class="field">
-        <span>Geschwindigkeit (<span id="rateVal">1.0</span>)</span>
-        <input type="range" id="rate" min="0.5" max="1.6" step="0.1" value="1" />
+        <span>Geschwindigkeit (<span id="rateVal">1.05</span>)</span>
+        <input type="range" id="rate" min="0.5" max="1.6" step="0.05" value="1.05" />
       </label>
 
-      <button class="ghost-btn" id="testVoice">Stimme testen</button>
+      <button class="ghost-btn" id="testVoice">🔊 Stimme testen</button>
     </div>
   </aside>
 
-  <!-- Tap-to-start overlay (needed for audio/mic permission) -->
+  <!-- Boot overlay -->
   <div class="boot-overlay" id="bootOverlay">
-    <div class="boot-corp">◇ SINGULARITY CORPORATIONS</div>
+    <div class="boot-corp">◆ SINGULARITY CORPORATIONS</div>
     <div class="boot-orb"></div>
     <h1 data-text="JENNY">JENNY</h1>
-    <p>Neural Interface · Tippe, um das System zu starten</p>
+    <p>Neural Interface · tippe, um zu starten</p>
     <button id="bootBtn">SYSTEM AKTIVIEREN</button>
-    <div class="boot-foot">powered by Singularity&nbsp;Corporations</div>
+    <div class="boot-foot">Voice &amp; AI Assistant</div>
   </div>
 
-  <!-- Three.js (für Orb). Lädt online vom CDN.
-       Für komplett offline: siehe README -> Offline-Setup. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
-    // Fallback auf lokal gevendortes Three.js, falls CDN nicht erreichbar
-    window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');
-  </script>
+  <script>window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');</script>
   <script src="js/orb.js"></script>
   <script src="js/voice.js"></script>
   <script src="js/brain.js"></script>

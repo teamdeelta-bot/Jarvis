@@ -4,12 +4,13 @@
 
   const el = {
     statusDot: $('statusDot'), statusText: $('statusText'),
-    orbCaption: $('orbCaption'), subtitle: $('subtitle'),
+    orbCaption: $('orbCaption'), subtitle: $('subtitle'), log: $('log'), chips: $('chips'),
     micBtn: $('micBtn'), textInput: $('textInput'), sendBtn: $('sendBtn'),
     goalsBtn: $('goalsBtn'), goalsPanel: $('goalsPanel'), closeGoals: $('closeGoals'), goalsList: $('goalsList'),
     settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), closeSettings: $('closeSettings'),
     brainMode: $('brainMode'), claudeSettings: $('claudeSettings'), apiKey: $('apiKey'), modelId: $('modelId'),
-    voiceSelect: $('voiceSelect'), ttsToggle: $('ttsToggle'),
+    testClaude: $('testClaude'), claudeResult: $('claudeResult'),
+    voiceSelect: $('voiceSelect'), voiceHint: $('voiceHint'), ttsToggle: $('ttsToggle'),
     pitch: $('pitch'), rate: $('rate'), pitchVal: $('pitchVal'), rateVal: $('rateVal'), testVoice: $('testVoice'),
     bootOverlay: $('bootOverlay'), bootBtn: $('bootBtn'),
   };
@@ -22,11 +23,11 @@
   let settings = {
     brainMode: store.get('brainMode', 'local'),
     apiKey: store.get('apiKey', ''),
-    modelId: store.get('modelId', 'claude-opus-4-8'),
+    modelId: store.get('modelId', 'claude-sonnet-4-5'),
     voiceURI: store.get('voiceURI', null),
     tts: store.get('tts', true),
-    pitch: store.get('pitch', 1),
-    rate: store.get('rate', 1),
+    pitch: store.get('pitch', 1.1),
+    rate: store.get('rate', 1.05),
   };
   let history = [];           // chat history for Claude
   let missions = store.get('missions', []);
@@ -43,33 +44,79 @@
     JennyVoice.setSpeechConfig({ voiceURI: settings.voiceURI, pitch: settings.pitch, rate: settings.rate, enabled: settings.tts });
   }
 
+  // Score a voice for "young, natural, female, German" — higher is better
+  const FEMALE = /(female|frau|woman|girl|katja|vicki|hedda|marlene|petra|helena|ingrid|sara|lena|emma|mia|klara|hannah|amelie|paulina|anna|sandy|google deutsch|aria|jenny|sonia|seraphina)/i;
+  const MALE = /(male|mann|stefan|conrad|klaus|hans|daniel|markus|google deutsch male)/i;
+  const QUALITY = /(natural|neural|online|premium|enhanced|google|wavenet)/i;
+  function scoreVoice(v) {
+    let s = 0;
+    if (/^de[-_]?DE/i.test(v.lang)) s += 40; else if (/^de/i.test(v.lang)) s += 25;
+    const n = v.name || '';
+    if (FEMALE.test(n)) s += 30;
+    if (MALE.test(n) && !FEMALE.test(n)) s -= 30;
+    if (QUALITY.test(n)) s += 15;
+    if (/desktop/i.test(n)) s -= 8;           // older robotic Windows voices
+    if (v.localService === false) s += 5;      // cloud voices usually nicer
+    return s;
+  }
+  function bestVoiceURI() {
+    const voices = JennyVoice.getVoices();
+    const de = voices.filter(v => /^de/i.test(v.lang));
+    const pool = de.length ? de : voices;
+    if (!pool.length) return null;
+    return pool.slice().sort((a, b) => scoreVoice(b) - scoreVoice(a))[0].voiceURI;
+  }
+
   function populateVoices() {
     const voices = JennyVoice.getVoices();
     el.voiceSelect.innerHTML = '';
-    const de = voices.filter(v => v.lang.startsWith('de'));
+    const de = voices.filter(v => v.lang.startsWith('de')).sort((a,b)=>scoreVoice(b)-scoreVoice(a));
     const rest = voices.filter(v => !v.lang.startsWith('de'));
+    // auto-pick the best young female German voice if user hasn't chosen one
+    if (!settings.voiceURI) {
+      const best = bestVoiceURI();
+      if (best) { settings.voiceURI = best; store.set('voiceURI', best); applyVoiceConfig(); }
+    }
     [...de, ...rest].forEach(v => {
       const o = document.createElement('option');
-      o.value = v.voiceURI; o.textContent = `${v.name} (${v.lang})`;
+      const fem = FEMALE.test(v.name||'') ? ' ♀' : '';
+      o.value = v.voiceURI; o.textContent = `${v.name} (${v.lang})${fem}`;
       if (v.voiceURI === settings.voiceURI) o.selected = true;
       el.voiceSelect.appendChild(o);
     });
-    if (!settings.voiceURI && de[0]) { settings.voiceURI = de[0].voiceURI; }
+    if (el.voiceHint) {
+      const cur = voices.find(v => v.voiceURI === settings.voiceURI);
+      el.voiceHint.textContent = cur
+        ? `Aktiv: ${cur.name}. Tipp: „Google Deutsch“ oder „Microsoft Katja“ klingen am natürlichsten.`
+        : `Tipp: Auf dem Handy (Chrome/Android) klingen die Google-Stimmen am natürlichsten.`;
+    }
   }
   if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = populateVoices;
+
+  // ---------- Transcript ----------
+  function addBubble(role, text) {
+    if (!text) return;
+    const b = document.createElement('div');
+    b.className = 'bubble ' + (role === 'me' ? 'me' : 'jenny');
+    b.textContent = text;
+    el.log.appendChild(b);
+    while (el.log.children.length > 20) el.log.removeChild(el.log.firstChild);
+    el.log.scrollTop = el.log.scrollHeight;
+  }
 
   // ---------- Core interaction ----------
   let busy = false;
   async function handleInput(text) {
     if (!text || busy) return;
     busy = true;
-    el.subtitle.textContent = '“' + text + '”';
+    addBubble('me', text);
+    el.subtitle.textContent = '';
     setState('thinking', 'Verarbeite…');
 
     const result = await JennyBrain.respond(text, { history, settings });
 
     history.push({ role: 'user', content: text });
-    history.push({ role: 'assistant', content: JSON.stringify(result) });
+    history.push({ role: 'assistant', content: result.reply || '' });
     if (history.length > 16) history = history.slice(-16);
 
     if (result.mission) addMission(result.mission);
@@ -156,7 +203,9 @@
   }
 
   function speak(reply) {
+    if (!reply) { setState('idle'); return; }
     el.subtitle.textContent = reply;
+    addBubble('jenny', reply);
     setState('speaking');
     JennyVoice.speak(reply, {
       onStart: () => setState('speaking'),
@@ -263,7 +312,39 @@
   el.ttsToggle.onchange = () => { settings.tts = el.ttsToggle.checked; store.set('tts', settings.tts); applyVoiceConfig(); };
   el.pitch.oninput = () => { settings.pitch = +el.pitch.value; el.pitchVal.textContent = settings.pitch; store.set('pitch', settings.pitch); applyVoiceConfig(); };
   el.rate.oninput = () => { settings.rate = +el.rate.value; el.rateVal.textContent = settings.rate; store.set('rate', settings.rate); applyVoiceConfig(); };
-  el.testVoice.onclick = () => { applyVoiceConfig(); JennyVoice.speak("Hallo, ich bin Jenny. Systeme sind online und bereit für deinen Auftrag."); };
+  el.testVoice.onclick = () => { applyVoiceConfig(); JennyVoice.speak("Hi, ich bin Jenny. Schön, dass du da bist — sag mir einfach, was du brauchst."); };
+
+  // suggestion chips
+  if (el.chips) el.chips.querySelectorAll('.chip').forEach(c => c.onclick = () => handleInput(c.dataset.q));
+
+  // Claude connection test
+  el.testClaude.onclick = async () => {
+    const key = el.apiKey.value.trim(), model = el.modelId.value.trim() || 'claude-sonnet-4-5';
+    settings.apiKey = key; settings.modelId = model; store.set('apiKey', key); store.set('modelId', model);
+    if (!key) { el.claudeResult.className = 'test-result err'; el.claudeResult.textContent = '✕ Bitte zuerst einen API-Key eintragen.'; return; }
+    el.claudeResult.className = 'test-result'; el.claudeResult.textContent = '… teste Verbindung …';
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model, max_tokens: 16, messages: [{ role: 'user', content: 'Sag nur: OK' }] }),
+      });
+      if (res.ok) { el.claudeResult.className = 'test-result ok'; el.claudeResult.textContent = '✓ Verbindung erfolgreich! Claude-Modus ist aktiv.'; }
+      else {
+        const txt = await res.text();
+        let hint = '';
+        if (res.status === 401) hint = ' → API-Key ungültig.';
+        else if (res.status === 404 || /model/i.test(txt)) hint = ' → Modellname stimmt nicht. Probiere claude-sonnet-4-5.';
+        else if (res.status === 400) hint = ' → Anfrage abgelehnt (oft Modellname).';
+        else if (res.status === 429) hint = ' → Zu viele Anfragen / kein Guthaben.';
+        el.claudeResult.className = 'test-result err';
+        el.claudeResult.textContent = `✕ Fehler ${res.status}${hint}`;
+      }
+    } catch (e) {
+      el.claudeResult.className = 'test-result err';
+      el.claudeResult.textContent = '✕ Netzwerk/CORS-Fehler: ' + e.message;
+    }
+  };
 
   // ---------- Boot ----------
   el.bootBtn.onclick = () => {

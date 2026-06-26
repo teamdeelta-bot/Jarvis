@@ -8,12 +8,12 @@
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
   camera.position.z = 3;
 
-  // Color presets per state
+  // Color presets per state (neon holographic palette)
   const STATE_COLORS = {
-    idle:      new THREE.Color(0x38e8ff),
-    listening: new THREE.Color(0x3affd2),
-    thinking:  new THREE.Color(0xffd24a),
-    speaking:  new THREE.Color(0x1b9dff),
+    idle:      new THREE.Color(0xa64bff),
+    listening: new THREE.Color(0x2bf5ff),
+    thinking:  new THREE.Color(0xff3db1),
+    speaking:  new THREE.Color(0xff7be6),
   };
 
   const uniforms = {
@@ -21,7 +21,8 @@
     uLevel:     { value: 0 },        // audio amplitude 0..1
     uActive:    { value: 0.15 },     // overall energy
     uColorA:    { value: STATE_COLORS.idle.clone() },
-    uColorB:    { value: new THREE.Color(0x7ff3ff) },
+    uColorB:    { value: new THREE.Color(0x2bf5ff) },
+    uColorC:    { value: new THREE.Color(0xff3db1) },
   };
 
   const vertex = `
@@ -78,17 +79,21 @@
     uniform float uActive;
     uniform vec3 uColorA;
     uniform vec3 uColorB;
+    uniform vec3 uColorC;
 
     void main(){
       vec3 viewDir = normalize(cameraPosition - vPos);
       float fres = pow(1.0 - max(dot(viewDir, normalize(vNormal)), 0.0), 2.2);
       float core = smoothstep(0.0, 1.0, dot(normalize(vNormal), viewDir));
-      vec3 col = mix(uColorA, uColorB, fres);
-      col += core * 0.35;
-      col += fres * (1.2 + uLevel * 2.0);
+      // Iridescent band that shifts across the surface and over time
+      float band = sin(vPos.y*3.0 + vPos.x*2.0 + uTime*1.2) * 0.5 + 0.5;
+      vec3 irid = mix(uColorA, uColorC, band);
+      vec3 col = mix(irid, uColorB, fres);
+      col += core * 0.30;
+      col += fres * (1.3 + uLevel * 2.2);
       float flicker = 0.9 + 0.1 * sin(uTime*6.0 + vPos.y*8.0);
       col *= flicker;
-      float alpha = clamp(fres * 1.4 + core * 0.5 + 0.15, 0.0, 1.0);
+      float alpha = clamp(fres * 1.5 + core * 0.5 + 0.16, 0.0, 1.0);
       gl_FragColor = vec4(col, alpha);
     }
   `;
@@ -102,7 +107,7 @@
   scene.add(orb);
 
   // Inner solid glow core
-  const coreMat = new THREE.MeshBasicMaterial({ color: 0x0a2040, transparent: true, opacity: 0.6 });
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0x1a0a30, transparent: true, opacity: 0.55 });
   const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(0.82, 32, 32), coreMat);
   scene.add(coreMesh);
 
@@ -119,7 +124,7 @@
     pPos[i*3+2] = r * Math.cos(ph);
   }
   pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-  const pMat = new THREE.PointsMaterial({ color: 0x9fe9ff, size: 0.022, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false });
+  const pMat = new THREE.PointsMaterial({ color: 0xff9fe8, size: 0.022, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false });
   const particles = new THREE.Points(pGeo, pMat);
   scene.add(particles);
 
