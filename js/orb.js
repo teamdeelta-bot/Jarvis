@@ -133,6 +133,19 @@
   // Smoothed level
   let level = 0, targetLevel = 0, targetActive = 0.15;
   let targetColor = STATE_COLORS.idle.clone();
+  let colorOverride = null; // when set, state changes don't change hue
+
+  const NAMED_COLORS = {
+    rot: 0xff3b5b, red: 0xff3b5b,
+    blau: 0x1b9dff, blue: 0x1b9dff,
+    grün: 0x3affa3, gruen: 0x3affa3, green: 0x3affa3,
+    lila: 0xb061ff, violett: 0xb061ff, purple: 0xb061ff,
+    pink: 0xff3df0, magenta: 0xff3df0,
+    gold: 0xffc14a, gelb: 0xffe24a, yellow: 0xffe24a,
+    orange: 0xff8a3a,
+    cyan: 0x38e8ff, türkis: 0x38e8ff, tuerkis: 0x38e8ff,
+    weiß: 0xeaffff, weiss: 0xeaffff, white: 0xeaffff,
+  };
 
   const clock = new THREE.Clock();
   function loop() {
@@ -155,8 +168,17 @@
     boot() { resize(); loop(); },
     setLevel(v) { targetLevel = Math.max(0, Math.min(1, v)); },
     setState(state) {
-      targetColor = (STATE_COLORS[state] || STATE_COLORS.idle).clone();
+      if (!colorOverride) targetColor = (STATE_COLORS[state] || STATE_COLORS.idle).clone();
       targetActive = state === 'idle' ? 0.22 : state === 'listening' ? 0.55 : state === 'thinking' ? 0.72 : 0.95;
     },
+    setColor(name) {
+      const hex = NAMED_COLORS[String(name).toLowerCase()];
+      if (hex == null) return false;
+      colorOverride = new THREE.Color(hex);
+      targetColor = colorOverride.clone();
+      return true;
+    },
+    resetColor() { colorOverride = null; targetColor = STATE_COLORS.idle.clone(); },
+    colorNames: Object.keys(NAMED_COLORS),
   };
 })();

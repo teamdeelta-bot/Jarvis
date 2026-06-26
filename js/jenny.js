@@ -74,8 +74,85 @@
 
     if (result.mission) addMission(result.mission);
 
-    speak(result.reply);
+    let reply = result.reply;
+    if (result.action) reply = executeAction(result.action, reply);
+
+    speak(reply);
     busy = false;
+  }
+
+  // ---------- Action engine (Jarvis-style abilities) ----------
+  function beep(times = 2) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      let t = ctx.currentTime;
+      for (let i = 0; i < times; i++) {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = 880;
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+        o.start(t); o.stop(t + 0.26); t += 0.35;
+      }
+    } catch (e) {}
+  }
+
+  function executeAction(a, reply) {
+    switch (a.type) {
+      case 'open':
+        setTimeout(() => window.open(a.url, '_blank', 'noopener'), 400);
+        return reply;
+      case 'orbColor':
+        if (!window.JennyOrb.setColor(a.color)) return `Die Farbe ${a.color} kenne ich nicht. Ich kann z.B. rot, blau, grün, lila, gold oder cyan.`;
+        return reply;
+      case 'orbColorReset':
+        window.JennyOrb.resetColor(); return reply;
+      case 'timer': {
+        const ms = a.ms, label = a.label;
+        setTimeout(() => {
+          beep(3);
+          const msg = `Dein Timer über ${label} ist abgelaufen, Boss.`;
+          notify('Timer abgelaufen', msg);
+          speak(msg);
+        }, ms);
+        return reply;
+      }
+      case 'note': {
+        const notes = store.get('notes', []);
+        notes.unshift({ text: a.text, ts: Date.now() });
+        store.set('notes', notes);
+        return reply;
+      }
+      case 'listNotes': {
+        const notes = store.get('notes', []);
+        if (!notes.length) return "Du hast noch keine Notizen.";
+        return "Deine Notizen: " + notes.slice(0, 5).map((n, i) => `${i + 1}. ${n.text}`).join('. ');
+      }
+      case 'diagnostics':
+        setState('thinking', 'Diagnose…'); runDiagnostics(); return "";
+    }
+    return reply;
+  }
+
+  function notify(title, body) {
+    try {
+      if (window.Notification && Notification.permission === 'granted') new Notification(title, { body });
+      else if (window.Notification && Notification.permission !== 'denied') Notification.requestPermission();
+    } catch (e) {}
+  }
+
+  async function runDiagnostics() {
+    const parts = [];
+    parts.push(`Uhrzeit ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`);
+    parts.push(navigator.onLine ? "Netzwerkverbindung stabil" : "keine Netzwerkverbindung");
+    if (navigator.getBattery) {
+      try { const b = await navigator.getBattery(); parts.push(`Energie bei ${Math.round(b.level * 100)} Prozent${b.charging ? ', wird geladen' : ''}`); } catch (e) {}
+    }
+    if (navigator.deviceMemory) parts.push(`${navigator.deviceMemory} Gigabyte Arbeitsspeicher`);
+    if (navigator.hardwareConcurrency) parts.push(`${navigator.hardwareConcurrency} Prozessorkerne`);
+    parts.push("Sprachsystem online");
+    const msg = "Systemdiagnose abgeschlossen. " + parts.join(', ') + ". Alle Kernsysteme nominal.";
+    speak(msg);
   }
 
   function speak(reply) {
@@ -196,7 +273,8 @@
     applyVoiceConfig();
     renderMissions();
     setState('idle');
-    setTimeout(() => speak("Jenny ist online. Willkommen bei Singularity Corporations. Alle Systeme bereit — was ist unser Ziel?"), 400);
+    setTimeout(() => speak("Jenny ist online. Willkommen bei Singularity Corporations. Du kannst mich alles fragen — Wissen, Wetter, Rechnen, Timer, Webseiten öffnen oder ein Ziel nennen. Womit fangen wir an?"), 400);
+    try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
   };
 
   // start orb early (under overlay) so it's warm
