@@ -14,6 +14,10 @@ window.JennyVoice = (function () {
   const SILENCE_MS = 1600;        // pause length that counts as "sentence finished"
   function clearSilence() { if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; } }
 
+  // ---- Languages ----
+  const LANGMAP = { de:'de-DE', en:'en-US', es:'es-ES', it:'it-IT', fa:'fa-IR', ru:'ru-RU', fr:'fr-FR', pt:'pt-PT', tr:'tr-TR', ja:'ja-JP', ar:'ar-SA' };
+  let recogLangPending = null;
+
   // ---- Mic level meter (Web Audio) ----
   let audioCtx, analyser, micStream, levelRAF;
   async function startLevelMeter() {
@@ -50,7 +54,7 @@ window.JennyVoice = (function () {
   function init() {
     if (!SR) return false;
     recognition = new SR();
-    recognition.lang = 'de-DE';
+    recognition.lang = recogLangPending || cfg.lang || 'de-DE';
     recognition.continuous = true;      // keep listening through pauses within a sentence
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
@@ -137,7 +141,7 @@ window.JennyVoice = (function () {
 
   // ---- Synthesis ----
   let voices = [];
-  let cfg = { voiceURI: null, pitch: 1, rate: 1, enabled: true };
+  let cfg = { voiceURI: null, pitch: 1, rate: 1, enabled: true, lang: 'de-DE' };
   let keepAlive = null;
 
   function loadVoices() {
@@ -152,36 +156,64 @@ window.JennyVoice = (function () {
     const iv = setInterval(() => { loadVoices(); if (voices.length || ++tries > 20) clearInterval(iv); }, 250);
   }
 
-  function pickVoice() {
-    if (cfg.voiceURI) { const v = voices.find(v => v.voiceURI === cfg.voiceURI); if (v) return v; }
-    return voices.find(v => /de[-_]/i.test(v.lang)) || voices.find(v => v.default) || voices[0] || null;
+  function voiceForLang(code2) {
+    const list = voices.filter(v => v.lang && v.lang.toLowerCase().indexOf(code2.toLowerCase()) === 0);
+    if (!list.length) return null;
+    const score = v => { let s = 0; if (/female|frau|woman|google|natural|neural|wavenet/i.test(v.name || '')) s += 5; if (v.localService === false) s += 2; return s; };
+    return list.slice().sort((a, b) => score(b) - score(a))[0];
+  }
+  function pickVoice(langFull) {
+    const code2 = (langFull || cfg.lang || 'de').slice(0, 2).toLowerCase();
+    if (code2 === 'de' && cfg.voiceURI) { const v = voices.find(v => v.voiceURI === cfg.voiceURI); if (v) return v; }
+    return voiceForLang(code2) || voices.find(v => /de[-_]/i.test(v.lang)) || voices.find(v => v.default) || voices[0] || null;
   }
 
-  function doSpeak(text, opts) {
+  // Split text into language segments so known English brand names are spoken
+  // with an English voice, the rest in the active language.
+  function segmentize(text, baseLang) {
+    const re = /(singularity corporations|singularity corp\.?)/ig;
+    const parts = []; let last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) parts.push({ text: text.slice(last, m.index), lang: baseLang });
+      parts.push({ text: m[0], lang: 'en-US' });
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) parts.push({ text: text.slice(last), lang: baseLang });
+    const out = parts.filter(p => p.text.trim());
+    return out.length ? out : [{ text: text, lang: baseLang }];
+  }
+
+  function makeUtter(seg) {
+    const u = new SpeechSynthesisUtterance(seg.text);
+    const v = pickVoice(seg.lang);
+    if (v) u.voice = v;
+    u.lang = (v && v.lang) || seg.lang;
+    u.pitch = cfg.pitch; u.rate = cfg.rate; u.volume = 1;
+    return u;
+  }
+
+  // Speak an array of {text, lang} segments back-to-back as one utterance chain.
+  function speakSegments(segs, opts) {
     const ss = window.speechSynthesis;
     ss.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const v = pickVoice();
-    if (v) u.voice = v;
-    u.lang = (v && v.lang) || 'de-DE';
-    u.pitch = cfg.pitch; u.rate = cfg.rate; u.volume = 1;
-    u.onstart = () => {
-      speaking = true;
-      // Chrome bug: synthesis pauses on long text -> keep it alive
-      keepAlive = setInterval(() => { try { ss.pause(); ss.resume(); } catch (e) {} }, 9000);
-      opts.onStart && opts.onStart();
-    };
-    const finish = () => {
-      speaking = false;
-      if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
-      opts.onDone && opts.onDone();
-      // resume listening after speaking, if in conversation mode
-      if (wantListen) setTimeout(() => { if (wantListen && !listening) startRecognition(); }, 300);
-    };
-    u.onend = finish;
-    u.onerror = finish;
-    try { ss.resume(); } catch (e) {}
-    ss.speak(u);
+    let i = 0, started = false;
+    function next() {
+      if (i >= segs.length) {
+        speaking = false;
+        if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
+        opts.onDone && opts.onDone();
+        if (wantListen) setTimeout(() => { if (wantListen && !listening) startRecognition(); }, 300);
+        return;
+      }
+      const u = makeUtter(segs[i++]);
+      u.onstart = () => {
+        if (!started) { started = true; speaking = true; keepAlive = setInterval(() => { try { ss.pause(); ss.resume(); } catch (e) {} }, 9000); opts.onStart && opts.onStart(); }
+      };
+      u.onend = next; u.onerror = next;
+      try { ss.resume(); } catch (e) {}
+      ss.speak(u);
+    }
+    next();
   }
 
   // Make text sound human: drop commas/symbols/emoji, expand abbreviations,
@@ -214,16 +246,17 @@ window.JennyVoice = (function () {
     if (!text) { opts.onDone && opts.onDone(); return; }
     // Pause recognition while speaking so Jenny doesn't hear herself
     if (listening) { try { recognition.stop(); } catch (e) {} }
+    const run = () => speakSegments(segmentize(text, cfg.lang || 'de-DE'), opts);
     if (!voices.length) {
       loadVoices();
       if (!voices.length) { // wait once for voices
-        const once = () => { window.speechSynthesis.removeEventListener('voiceschanged', once); loadVoices(); doSpeak(text, opts); };
+        const once = () => { window.speechSynthesis.removeEventListener('voiceschanged', once); loadVoices(); run(); };
         window.speechSynthesis.addEventListener('voiceschanged', once);
-        setTimeout(() => { if (!voices.length) doSpeak(text, opts); }, 600);
+        setTimeout(() => { if (!voices.length) run(); }, 600);
         return;
       }
     }
-    doSpeak(text, opts);
+    run();
   }
   function cancelSpeak() {
     speaking = false;
@@ -238,6 +271,13 @@ window.JennyVoice = (function () {
     speak, cancelSpeak,
     getVoices: loadVoices,
     setSpeechConfig(c) { Object.assign(cfg, c); },
+    setLang(code) {
+      const full = (code && code.indexOf('-') > 0) ? code : (LANGMAP[code] || 'de-DE');
+      cfg.lang = full;
+      if (recognition) { try { recognition.lang = full; } catch (e) {} } else { recogLangPending = full; }
+    },
+    getLang: () => cfg.lang,
+    hasVoiceFor(code) { const full = LANGMAP[code] || code || 'de'; return !!voiceForLang(full.slice(0, 2)); },
     on(h) { handlers = h; },
     isListening: () => wantListen,
   };

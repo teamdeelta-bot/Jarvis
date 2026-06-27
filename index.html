@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body data-mode="assistant">
   <!-- Background FX -->
   <div class="bg-plasma"></div>
   <div class="bg-floor"></div>
@@ -23,110 +23,176 @@
     <div class="brandbox">
       <span class="corp">◆ SINGULARITY CORPORATIONS</span>
       <span class="brand" data-text="JENNY">JENNY</span>
-      <span class="brand-sub">J · E · N · N · Y · &nbsp;Neural Entity</span>
     </div>
-    <div class="top-center">
-      <div class="clock" id="clock">--:--</div>
-      <div class="date" id="dateNow">—</div>
-    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-mode="assistant">Assistant</button>
+      <button class="tab" data-mode="studio">Studio</button>
+      <button class="tab" data-mode="languages">Languages</button>
+      <button class="tab" data-mode="sales">Sales</button>
+    </nav>
     <div class="top-actions">
+      <div class="clock" id="clock">--:--</div>
       <div class="status-chip"><span class="dot" id="statusDot"></span><span id="statusText">Offline</span></div>
-      <div class="mode-chip" id="modeChip">JENNY KI</div>
+      <select class="lang-select" id="langSelect" title="Sprache">
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="it">🇮🇹 Italiano</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="fa">🇮🇷 فارسی</option>
+      </select>
       <button class="icon-btn" id="settingsBtn" title="Einstellungen">⚙</button>
     </div>
   </header>
 
-  <!-- Command center grid -->
-  <main class="command-center">
+  <!-- ===================== VIEWS ===================== -->
+  <main class="views">
 
-    <!-- LEFT COLUMN -->
-    <div class="col col-left">
-      <section class="win">
-        <header class="win-head"><span class="win-dot"></span><h3>System</h3><span class="win-tag">LIVE</span></header>
-        <div class="win-body">
-          <div class="tel-row"><span>Status</span><b id="telStatus">Online</b></div>
-          <div class="tel-row"><span>KI-Kern</span><b id="telMode">Jenny KI</b></div>
-          <div class="tel-row"><span>Netzwerk</span><b id="telNet">—</b></div>
-          <div class="tel-row"><span>Energie</span><b id="telBat">—</b></div>
-          <div class="tel-row"><span>Kerne</span><b id="telCores">—</b></div>
-          <div class="tel-bars">
-            <div class="tel-bar"><label>Auslastung</label><div class="bar"><i style="--w:62%"></i></div></div>
-            <div class="tel-bar"><label>Speicher</label><div class="bar"><i style="--w:48%"></i></div></div>
-            <div class="tel-bar"><label>Neural-Link</label><div class="bar"><i style="--w:84%"></i></div></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="win win-grow">
-        <header class="win-head"><span class="win-dot"></span><h3>Missionen</h3><span class="win-tag" id="missionCount">0</span></header>
-        <div class="win-body" id="goalsList">
-          <p class="empty-hint">Noch keine Missionen. Sag mir dein Ziel, ich bau den Plan.</p>
-        </div>
-      </section>
-    </div>
-
-    <!-- CENTER COLUMN -->
-    <div class="col col-center">
-      <div class="orb-stage">
-        <div class="orb-wrap" id="orbWrap">
-          <canvas id="orbCanvas"></canvas>
-          <div class="halo h1"></div>
-          <div class="halo h2"></div>
-          <div class="halo h3"></div>
-        </div>
-        <div class="orb-caption" id="orbCaption">Bereit</div>
-        <div class="subtitle" id="subtitle"></div>
-      </div>
-
-      <div class="command">
-        <button class="mic-btn" id="micBtn" title="Sprechen">
-          <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
-        </button>
-        <input type="text" id="textInput" placeholder="Sprich oder schreibe… frag mich alles" autocomplete="off" />
-        <button id="sendBtn" class="send-btn" title="Senden">➤</button>
-      </div>
-    </div>
-
-    <!-- RIGHT COLUMN -->
-    <div class="col col-right">
-      <section class="win win-grow">
-        <header class="win-head"><span class="win-dot"></span><h3>Aktivität</h3><button class="win-act" id="clearChat" title="Verlauf löschen">✕</button></header>
-        <div class="win-body"><div class="log" id="log"><p class="empty-hint">Hier landet euer Gespräch. Sprich mit mir oder tipp unten was ein.</p></div></div>
-      </section>
-
-      <section class="win">
-        <header class="win-head"><span class="win-dot"></span><h3>Schnellzugriff</h3><button class="win-act caret" id="tilesToggle" title="Ein-/ausklappen">▾</button></header>
-        <div class="win-body">
-          <section class="tiles collapsed" id="tiles">
-            <button class="tile" data-q="Wie ist das Wetter?"><span class="ic">☁️</span><span>Wetter</span></button>
-            <button class="tile" data-q="Was ist ein schwarzes Loch?"><span class="ic">🪐</span><span>Wissen</span></button>
-            <button class="tile" data-fill="Übersetze Guten Morgen auf Englisch"><span class="ic">🌍</span><span>Übersetzen</span></button>
-            <button class="tile" data-q="Was kostet Bitcoin?"><span class="ic">₿</span><span>Krypto</span></button>
-            <button class="tile" data-q="Stell einen Timer auf 5 Minuten"><span class="ic">⏱️</span><span>Timer</span></button>
-            <button class="tile" data-fill="Merke dir: "><span class="ic">📝</span><span>Notiz</span></button>
-            <button class="tile" data-q="Erstelle ein sicheres Passwort"><span class="ic">🔐</span><span>Passwort</span></button>
-            <button class="tile" data-q="Wie viel sind 10 km in Meilen?"><span class="ic">📐</span><span>Umrechnen</span></button>
-            <button class="tile" data-q="Was soll ich heute kochen?"><span class="ic">🍝</span><span>Essen</span></button>
-            <button class="tile" data-q="Erzähl mir einen interessanten Fakt"><span class="ic">🧠</span><span>Fakt</span></button>
-            <button class="tile" data-q="Erzähl einen Witz"><span class="ic">😄</span><span>Witz</span></button>
-            <button class="tile" data-q="Gib mir ein Zitat"><span class="ic">💬</span><span>Zitat</span></button>
-            <button class="tile" data-q="Motivier mich"><span class="ic">💪</span><span>Motivation</span></button>
-            <button class="tile" data-q="Mach eine Atemübung mit mir"><span class="ic">🌬️</span><span>Atmen</span></button>
-            <button class="tile" data-q="Würfle"><span class="ic">🎲</span><span>Würfeln</span></button>
-            <button class="tile" data-q="Münzwurf"><span class="ic">🪙</span><span>Münze</span></button>
-            <button class="tile" data-q="Mach den Orb cyan"><span class="ic">🎨</span><span>Orb-Farbe</span></button>
-            <button class="tile" data-q="Systemdiagnose"><span class="ic">🩺</span><span>Diagnose</span></button>
-            <button class="tile" data-fill="Verkaufe Webseiten für 500 Euro"><span class="ic">🎯</span><span>Ziel</span></button>
+    <!-- ASSISTANT -->
+    <section class="view assistant active" data-view="assistant">
+      <div class="command-center">
+        <div class="col col-left">
+          <section class="win">
+            <header class="win-head"><span class="win-dot"></span><h3>System</h3><span class="win-tag">LIVE</span></header>
+            <div class="win-body">
+              <div class="tel-row"><span>Datum</span><b id="dateNow">—</b></div>
+              <div class="tel-row"><span>Status</span><b id="telStatus">Online</b></div>
+              <div class="tel-row"><span>KI-Kern</span><b id="telMode">Jenny KI</b></div>
+              <div class="tel-row"><span>Netzwerk</span><b id="telNet">—</b></div>
+              <div class="tel-row"><span>Energie</span><b id="telBat">—</b></div>
+              <div class="tel-row"><span>Kerne</span><b id="telCores">—</b></div>
+              <div class="tel-bars">
+                <div class="tel-bar"><label>Auslastung</label><div class="bar"><i style="--w:62%"></i></div></div>
+                <div class="tel-bar"><label>Speicher</label><div class="bar"><i style="--w:48%"></i></div></div>
+                <div class="tel-bar"><label>Neural-Link</label><div class="bar"><i style="--w:84%"></i></div></div>
+              </div>
+            </div>
+          </section>
+          <section class="win win-grow">
+            <header class="win-head"><span class="win-dot"></span><h3>Missionen</h3><span class="win-tag" id="missionCount">0</span></header>
+            <div class="win-body" id="goalsList"><p class="empty-hint">Noch keine Missionen. Sag mir dein Ziel, ich bau den Plan.</p></div>
           </section>
         </div>
-      </section>
-    </div>
+
+        <div class="col col-center">
+          <div class="orb-stage">
+            <div class="orb-wrap" id="orbWrap">
+              <canvas id="orbCanvas"></canvas>
+              <div class="halo h1"></div><div class="halo h2"></div><div class="halo h3"></div>
+            </div>
+            <div class="orb-caption" id="orbCaption">Bereit</div>
+            <div class="subtitle" id="subtitle"></div>
+          </div>
+        </div>
+
+        <div class="col col-right">
+          <section class="win win-grow">
+            <header class="win-head"><span class="win-dot"></span><h3>Aktivität</h3><button class="win-act" id="clearChat" title="Verlauf löschen">✕</button></header>
+            <div class="win-body"><div class="log" id="log"><p class="empty-hint">Hier landet euer Gespräch. Sprich mit mir oder tipp unten was ein.</p></div></div>
+          </section>
+          <section class="win">
+            <header class="win-head"><span class="win-dot"></span><h3>Schnellzugriff</h3><button class="win-act caret" id="tilesToggle" title="Ein-/ausklappen">▾</button></header>
+            <div class="win-body">
+              <section class="tiles collapsed" id="tiles">
+                <button class="tile" data-q="Wie ist das Wetter?"><span class="ic">☁️</span><span>Wetter</span></button>
+                <button class="tile" data-q="Was kosten Bitcoin und Ethereum?"><span class="ic">₿</span><span>Krypto</span></button>
+                <button class="tile" data-fill="Übersetze Guten Morgen auf Englisch"><span class="ic">🌍</span><span>Übersetzen</span></button>
+                <button class="tile" data-q="Stell einen Timer auf 5 Minuten"><span class="ic">⏱️</span><span>Timer</span></button>
+                <button class="tile" data-fill="Merke dir: "><span class="ic">📝</span><span>Notiz</span></button>
+                <button class="tile" data-q="Erstelle ein sicheres Passwort"><span class="ic">🔐</span><span>Passwort</span></button>
+                <button class="tile" data-fill="Programmiere ein Spiel"><span class="ic">🎮</span><span>Spiel</span></button>
+                <button class="tile" data-fill="Erstelle eine Website für "><span class="ic">🌐</span><span>Website</span></button>
+                <button class="tile" data-q="Wie viel sind 10 km in Meilen?"><span class="ic">📐</span><span>Umrechnen</span></button>
+                <button class="tile" data-q="Systemdiagnose"><span class="ic">🩺</span><span>Diagnose</span></button>
+                <button class="tile" data-q="Mach den Orb cyan"><span class="ic">🎨</span><span>Orb-Farbe</span></button>
+                <button class="tile" data-fill="Verkaufe Webseiten für 500 Euro"><span class="ic">🎯</span><span>Ziel</span></button>
+              </section>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- STUDIO -->
+    <section class="view studio" data-view="studio">
+      <div class="panel-screen">
+        <h2 class="screen-title">⚙ Studio — Jenny baut dir was</h2>
+        <p class="screen-sub">Klick eine Vorlage für sofortiges Spielen, oder beschreib unten ganz frei was du willst — z.B. „programmiere ein Weltraum-Shooter“ oder „erstelle eine Website für mein Café“. Jenny baut es per KI.</p>
+        <div class="launch-grid">
+          <button class="launch" data-game="snake"><span class="ic">🐍</span><span>Snake</span></button>
+          <button class="launch" data-game="pong"><span class="ic">🏓</span><span>Pong</span></button>
+          <button class="launch" data-game="breakout"><span class="ic">🧱</span><span>Breakout</span></button>
+          <button class="launch" data-game="tictactoe"><span class="ic">⭕</span><span>Tic-Tac-Toe</span></button>
+          <button class="launch" data-studio="website"><span class="ic">🌐</span><span>Website-Vorlage</span></button>
+          <button class="launch" data-ai="game"><span class="ic">✨</span><span>Eigenes Spiel (KI)</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LANGUAGES -->
+    <section class="view languages" data-view="languages">
+      <div class="panel-screen train">
+        <div class="train-head">
+          <h2 class="screen-title">🌍 Languages — lernen mit Jenny</h2>
+          <div class="train-controls">
+            <select id="learnLang"></select>
+            <select id="learnLevel"></select>
+            <button class="ghost-btn slim" id="langStart">Lektion starten</button>
+            <button class="ghost-btn slim" id="langEval">Bewertung</button>
+          </div>
+          <div class="gauge"><span class="gauge-label">Niveau</span><div class="gauge-bar"><i id="langGaugeBar"></i></div><span class="gauge-num" id="langGaugeNum">—</span></div>
+        </div>
+        <div class="train-log log" id="langLog"><p class="empty-hint">Wähl Sprache und Level und starte. Ich bring dir was bei, gebe Aufgaben und bewerte dich.</p></div>
+      </div>
+    </section>
+
+    <!-- SALES -->
+    <section class="view sales" data-view="sales">
+      <div class="panel-screen train">
+        <div class="train-head">
+          <h2 class="screen-title">💼 Sales — Verkaufstraining</h2>
+          <div class="train-controls">
+            <button class="ghost-btn slim" id="salesNew">Neues Szenario</button>
+            <button class="ghost-btn slim" id="salesEval">Bewertung anfordern</button>
+          </div>
+          <div class="gauge"><span class="gauge-label">Sales-Score</span><div class="gauge-bar"><i id="salesGaugeBar"></i></div><span class="gauge-num" id="salesGaugeNum">—</span></div>
+        </div>
+        <div class="train-log log" id="salesLog"><p class="empty-hint">Klick „Neues Szenario“ — ich nenne dir ein Produkt und spiele den Kunden. Du pitchst, ich bewerte dich und gebe Tipps.</p></div>
+      </div>
+    </section>
   </main>
 
-  <!-- Bottom ticker -->
-  <div class="ticker"><div class="ticker-track" id="ticker">SINGULARITY CORPORATIONS · NEURAL OPERATIONS CENTER · JENNY ONLINE · ALLE KERNSYSTEME NOMINAL · </div></div>
+  <!-- Global command bar -->
+  <div class="command" id="commandBar">
+    <button class="mic-btn" id="micBtn" title="Sprechen">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+    </button>
+    <input type="text" id="textInput" placeholder="Sprich oder schreibe… frag mich alles" autocomplete="off" />
+    <button id="sendBtn" class="send-btn" title="Senden">➤</button>
+  </div>
 
-  <!-- Settings panel (slide-in) -->
+  <!-- Bottom ticker -->
+  <div class="ticker"><div class="ticker-track" id="ticker">SINGULARITY CORPORATIONS · NEURAL OPERATIONS CENTER · JENNY ONLINE · STUDIO · LANGUAGES · SALES · ALLE KERNSYSTEME NOMINAL · </div></div>
+
+  <!-- Studio overlay (shared) -->
+  <div class="studio-overlay" id="studioOverlay">
+    <div class="studio-window">
+      <header class="studio-head">
+        <h3 id="studioTitle">Studio</h3>
+        <div class="studio-acts">
+          <button class="ghost-btn slim" id="studioRegen">↻ Neu</button>
+          <button class="ghost-btn slim" id="studioDownload" style="display:none">⬇ HTML</button>
+          <button class="icon-btn" id="studioClose">✕</button>
+        </div>
+      </header>
+      <div class="studio-stage">
+        <div class="studio-status" id="studioStatus">Jenny baut…</div>
+        <iframe id="studioFrame" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings panel -->
   <aside class="panel" id="settingsPanel">
     <div class="panel-head"><h2>Einstellungen</h2><button class="icon-btn" id="closeSettings">✕</button></div>
     <div class="panel-body">
@@ -137,42 +203,16 @@
           <option value="claude">Claude API — eigener Key (erweitert)</option>
         </select>
       </label>
-
       <div id="claudeSettings" class="hidden">
-        <label class="field">
-          <span>Anthropic API-Key</span>
-          <input type="password" id="apiKey" placeholder="sk-ant-…" />
-          <small>Nur lokal im Browser gespeichert. Key gibt's auf console.anthropic.com</small>
-        </label>
-        <label class="field">
-          <span>Modell</span>
-          <input type="text" id="modelId" value="claude-sonnet-4-5" />
-          <small>z.B. claude-sonnet-4-5, claude-opus-4-1, claude-3-5-haiku-latest</small>
-        </label>
+        <label class="field"><span>Anthropic API-Key</span><input type="password" id="apiKey" placeholder="sk-ant-…" /><small>Nur lokal im Browser gespeichert. Key gibt's auf console.anthropic.com</small></label>
+        <label class="field"><span>Modell</span><input type="text" id="modelId" value="claude-sonnet-4-5" /><small>z.B. claude-sonnet-4-5, claude-opus-4-1</small></label>
         <button class="ghost-btn" id="testClaude">🔌 Claude-Verbindung testen</button>
         <div class="test-result" id="claudeResult"></div>
       </div>
-
-      <label class="field">
-        <span>Stimme</span>
-        <select id="voiceSelect"></select>
-        <small id="voiceHint"></small>
-      </label>
-
-      <label class="field row">
-        <span>Sprachausgabe</span>
-        <input type="checkbox" id="ttsToggle" checked />
-      </label>
-
-      <label class="field">
-        <span>Tonhöhe (<span id="pitchVal">1.1</span>) — höher = jünger</span>
-        <input type="range" id="pitch" min="0.5" max="2" step="0.05" value="1.1" />
-      </label>
-      <label class="field">
-        <span>Geschwindigkeit (<span id="rateVal">1.05</span>)</span>
-        <input type="range" id="rate" min="0.5" max="1.6" step="0.05" value="1.05" />
-      </label>
-
+      <label class="field"><span>Stimme</span><select id="voiceSelect"></select><small id="voiceHint"></small></label>
+      <label class="field row"><span>Sprachausgabe</span><input type="checkbox" id="ttsToggle" checked /></label>
+      <label class="field"><span>Tonhöhe (<span id="pitchVal">1.1</span>) — höher = jünger</span><input type="range" id="pitch" min="0.5" max="2" step="0.05" value="1.1" /></label>
+      <label class="field"><span>Geschwindigkeit (<span id="rateVal">1.05</span>)</span><input type="range" id="rate" min="0.5" max="1.6" step="0.05" value="1.05" /></label>
       <button class="ghost-btn" id="testVoice">🔊 Stimme testen</button>
     </div>
   </aside>
@@ -185,7 +225,7 @@
     <p class="boot-acro">J · E · N · N · Y</p>
     <p>Neural Operations Center · tippe, um zu starten</p>
     <button id="bootBtn">SYSTEM AKTIVIEREN</button>
-    <div class="boot-foot">Voice &amp; AI Assistant</div>
+    <div class="boot-foot">Assistant · Studio · Languages · Sales</div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -193,6 +233,8 @@
   <script src="js/orb.js"></script>
   <script src="js/voice.js"></script>
   <script src="js/brain.js"></script>
+  <script src="js/studio.js"></script>
+  <script src="js/coach.js"></script>
   <script src="js/jenny.js"></script>
 </body>
 </html>
