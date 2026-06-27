@@ -275,8 +275,9 @@ oder bei einem Ziel:
     }
 
     // --- dice / coin / random ---
-    if (/(würfel|würfle|wurfel|roll)/.test(t)) return { reply: `${1 + Math.floor(Math.random()*6)}! ${pick(["Glück gehabt?","Na bitte.","Da ist sie."])}` };
-    if (/(münze|münzwurf|kopf oder zahl|coin)/.test(t)) return { reply: `${Math.random()<0.5?'Kopf':'Zahl'}!` };
+    // Tight matches so "Bitcoin" & co. don't accidentally trigger a coin flip.
+    if (/\b(würfel|würfle|wurfel|würfeln)\b/.test(t)) return { reply: `${1 + Math.floor(Math.random()*6)}! ${pick(["Glück gehabt?","Na bitte.","Da ist sie."])}` };
+    if (/\bmünzwurf\b|kopf oder zahl|wirf .*münze|münze werfen/.test(t)) return { reply: `${Math.random()<0.5?'Kopf':'Zahl'}!` };
     let rr = t.match(/zufallszahl(?: zwischen)?\s*(\d+)\D+(\d+)/);
     if (rr) { const a=+rr[1], b=+rr[2], lo=Math.min(a,b), hi=Math.max(a,b); return { reply: `${lo + Math.floor(Math.random()*(hi-lo+1))} — deine Zahl.` }; }
 
@@ -428,7 +429,9 @@ oder bei einem Ziel:
 
   // ============ goals ============
   function isGoal(t) {
-    return /(verdien|verkauf|mach .* (euro|€)|erstell|baue?\b|plan(e|en)?\b|projekt|website|webseite|webseiten|kunden|umsatz|ziel|automatisier|launch|starte ein|gründ|abnehmen|lernen|sparen)/.test(t);
+    // Only treat it as a real goal when there's clear intent — otherwise normal
+    // questions ("wie baue ich eine website") would wrongly become missions.
+    return /(mein ziel|unser ziel|ich will|ich möchte|ich brauche einen plan|plan für|plane (ein|eine|einen)|verdien|verkauf|\d+\s*(euro|€|eur)\b|umsatz|kunden gewinnen|kundengewinnung|gründ|starte ein|start-?up|projekt (starten|aufbauen)|abnehmen|sparen für|hilf mir .* zu (erreichen|schaffen|starten))/.test(t);
   }
   function buildMission(original, t) {
     const moneyMatch = original.match(/(\d{2,7})\s*(€|euro|eur)/i);

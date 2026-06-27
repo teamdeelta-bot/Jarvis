@@ -14,8 +14,8 @@
   <div class="bg-plasma"></div>
   <div class="bg-floor"></div>
   <div class="bg-noise"></div>
+  <div class="bg-scan"></div>
   <div class="vignette"></div>
-  <!-- HUD corner brackets -->
   <span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span>
 
   <!-- Top bar -->
@@ -25,83 +25,108 @@
       <span class="brand" data-text="JENNY">JENNY</span>
       <span class="brand-sub">J · E · N · N · Y · &nbsp;Neural Entity</span>
     </div>
-    <div class="top-actions">
+    <div class="top-center">
       <div class="clock" id="clock">--:--</div>
+      <div class="date" id="dateNow">—</div>
+    </div>
+    <div class="top-actions">
       <div class="status-chip"><span class="dot" id="statusDot"></span><span id="statusText">Offline</span></div>
-      <button class="icon-btn" id="chatBtn" title="Gespräch">💬<span class="badge" id="chatBadge"></span></button>
-      <button class="icon-btn" id="goalsBtn" title="Missionen">◎</button>
+      <div class="mode-chip" id="modeChip">JENNY KI</div>
       <button class="icon-btn" id="settingsBtn" title="Einstellungen">⚙</button>
     </div>
   </header>
 
-  <!-- Main stage -->
-  <main class="stage">
-    <div class="orb-stage">
-      <div class="orb-wrap" id="orbWrap">
-        <canvas id="orbCanvas"></canvas>
-        <div class="halo h1"></div>
-        <div class="halo h2"></div>
-        <div class="halo h3"></div>
-      </div>
-      <div class="orb-caption" id="orbCaption">Bereit</div>
-      <div class="subtitle" id="subtitle"></div>
+  <!-- Command center grid -->
+  <main class="command-center">
+
+    <!-- LEFT COLUMN -->
+    <div class="col col-left">
+      <section class="win">
+        <header class="win-head"><span class="win-dot"></span><h3>System</h3><span class="win-tag">LIVE</span></header>
+        <div class="win-body">
+          <div class="tel-row"><span>Status</span><b id="telStatus">Online</b></div>
+          <div class="tel-row"><span>KI-Kern</span><b id="telMode">Jenny KI</b></div>
+          <div class="tel-row"><span>Netzwerk</span><b id="telNet">—</b></div>
+          <div class="tel-row"><span>Energie</span><b id="telBat">—</b></div>
+          <div class="tel-row"><span>Kerne</span><b id="telCores">—</b></div>
+          <div class="tel-bars">
+            <div class="tel-bar"><label>Auslastung</label><div class="bar"><i style="--w:62%"></i></div></div>
+            <div class="tel-bar"><label>Speicher</label><div class="bar"><i style="--w:48%"></i></div></div>
+            <div class="tel-bar"><label>Neural-Link</label><div class="bar"><i style="--w:84%"></i></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="win win-grow">
+        <header class="win-head"><span class="win-dot"></span><h3>Missionen</h3><span class="win-tag" id="missionCount">0</span></header>
+        <div class="win-body" id="goalsList">
+          <p class="empty-hint">Noch keine Missionen. Sag mir dein Ziel, ich bau den Plan.</p>
+        </div>
+      </section>
     </div>
 
-    <!-- Feature tiles (Kacheln) -->
-    <div class="tiles-bar">
-      <button class="tiles-toggle" id="tilesToggle">⚡ Schnellzugriff <span class="caret">▾</span></button>
+    <!-- CENTER COLUMN -->
+    <div class="col col-center">
+      <div class="orb-stage">
+        <div class="orb-wrap" id="orbWrap">
+          <canvas id="orbCanvas"></canvas>
+          <div class="halo h1"></div>
+          <div class="halo h2"></div>
+          <div class="halo h3"></div>
+        </div>
+        <div class="orb-caption" id="orbCaption">Bereit</div>
+        <div class="subtitle" id="subtitle"></div>
+      </div>
+
+      <div class="command">
+        <button class="mic-btn" id="micBtn" title="Sprechen">
+          <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+        </button>
+        <input type="text" id="textInput" placeholder="Sprich oder schreibe… frag mich alles" autocomplete="off" />
+        <button id="sendBtn" class="send-btn" title="Senden">➤</button>
+      </div>
     </div>
-    <section class="tiles collapsed" id="tiles">
-      <button class="tile" data-q="Wie ist das Wetter?"><span class="ic">☁️</span><span>Wetter</span></button>
-      <button class="tile" data-q="Was ist ein schwarzes Loch?"><span class="ic">🪐</span><span>Wissen</span></button>
-      <button class="tile" data-fill="Übersetze Guten Morgen auf Englisch"><span class="ic">🌍</span><span>Übersetzen</span></button>
-      <button class="tile" data-q="Was kostet Bitcoin?"><span class="ic">₿</span><span>Krypto</span></button>
-      <button class="tile" data-q="Stell einen Timer auf 5 Minuten"><span class="ic">⏱️</span><span>Timer</span></button>
-      <button class="tile" data-fill="Merke dir: "><span class="ic">📝</span><span>Notiz</span></button>
-      <button class="tile" data-q="Erstelle ein sicheres Passwort"><span class="ic">🔐</span><span>Passwort</span></button>
-      <button class="tile" data-q="Wie viel sind 10 km in Meilen?"><span class="ic">📐</span><span>Umrechnen</span></button>
-      <button class="tile" data-q="Was soll ich heute kochen?"><span class="ic">🍝</span><span>Essen</span></button>
-      <button class="tile" data-q="Erzähl mir einen interessanten Fakt"><span class="ic">🧠</span><span>Fakt</span></button>
-      <button class="tile" data-q="Erzähl einen Witz"><span class="ic">😄</span><span>Witz</span></button>
-      <button class="tile" data-q="Gib mir ein Zitat"><span class="ic">💬</span><span>Zitat</span></button>
-      <button class="tile" data-q="Motivier mich"><span class="ic">💪</span><span>Motivation</span></button>
-      <button class="tile" data-q="Mach eine Atemübung mit mir"><span class="ic">🌬️</span><span>Atmen</span></button>
-      <button class="tile" data-q="Was ist 25 mal 18?"><span class="ic">🧮</span><span>Rechnen</span></button>
-      <button class="tile" data-q="Würfle"><span class="ic">🎲</span><span>Würfeln</span></button>
-      <button class="tile" data-q="Münzwurf"><span class="ic">🪙</span><span>Münze</span></button>
-      <button class="tile" data-q="Mach den Orb cyan"><span class="ic">🎨</span><span>Orb-Farbe</span></button>
-      <button class="tile" data-fill="Spiele Lofi Beats auf YouTube"><span class="ic">🎵</span><span>Musik</span></button>
-      <button class="tile" data-q="Systemdiagnose"><span class="ic">🩺</span><span>Diagnose</span></button>
-      <button class="tile" data-fill="Soll ich heute Sport machen oder chillen?"><span class="ic">🤔</span><span>Entscheidung</span></button>
-      <button class="tile" data-fill="Verkaufe Webseiten für 500 Euro"><span class="ic">🎯</span><span>Ziel</span></button>
-    </section>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col col-right">
+      <section class="win win-grow">
+        <header class="win-head"><span class="win-dot"></span><h3>Aktivität</h3><button class="win-act" id="clearChat" title="Verlauf löschen">✕</button></header>
+        <div class="win-body"><div class="log" id="log"><p class="empty-hint">Hier landet euer Gespräch. Sprich mit mir oder tipp unten was ein.</p></div></div>
+      </section>
+
+      <section class="win">
+        <header class="win-head"><span class="win-dot"></span><h3>Schnellzugriff</h3><button class="win-act caret" id="tilesToggle" title="Ein-/ausklappen">▾</button></header>
+        <div class="win-body">
+          <section class="tiles collapsed" id="tiles">
+            <button class="tile" data-q="Wie ist das Wetter?"><span class="ic">☁️</span><span>Wetter</span></button>
+            <button class="tile" data-q="Was ist ein schwarzes Loch?"><span class="ic">🪐</span><span>Wissen</span></button>
+            <button class="tile" data-fill="Übersetze Guten Morgen auf Englisch"><span class="ic">🌍</span><span>Übersetzen</span></button>
+            <button class="tile" data-q="Was kostet Bitcoin?"><span class="ic">₿</span><span>Krypto</span></button>
+            <button class="tile" data-q="Stell einen Timer auf 5 Minuten"><span class="ic">⏱️</span><span>Timer</span></button>
+            <button class="tile" data-fill="Merke dir: "><span class="ic">📝</span><span>Notiz</span></button>
+            <button class="tile" data-q="Erstelle ein sicheres Passwort"><span class="ic">🔐</span><span>Passwort</span></button>
+            <button class="tile" data-q="Wie viel sind 10 km in Meilen?"><span class="ic">📐</span><span>Umrechnen</span></button>
+            <button class="tile" data-q="Was soll ich heute kochen?"><span class="ic">🍝</span><span>Essen</span></button>
+            <button class="tile" data-q="Erzähl mir einen interessanten Fakt"><span class="ic">🧠</span><span>Fakt</span></button>
+            <button class="tile" data-q="Erzähl einen Witz"><span class="ic">😄</span><span>Witz</span></button>
+            <button class="tile" data-q="Gib mir ein Zitat"><span class="ic">💬</span><span>Zitat</span></button>
+            <button class="tile" data-q="Motivier mich"><span class="ic">💪</span><span>Motivation</span></button>
+            <button class="tile" data-q="Mach eine Atemübung mit mir"><span class="ic">🌬️</span><span>Atmen</span></button>
+            <button class="tile" data-q="Würfle"><span class="ic">🎲</span><span>Würfeln</span></button>
+            <button class="tile" data-q="Münzwurf"><span class="ic">🪙</span><span>Münze</span></button>
+            <button class="tile" data-q="Mach den Orb cyan"><span class="ic">🎨</span><span>Orb-Farbe</span></button>
+            <button class="tile" data-q="Systemdiagnose"><span class="ic">🩺</span><span>Diagnose</span></button>
+            <button class="tile" data-fill="Verkaufe Webseiten für 500 Euro"><span class="ic">🎯</span><span>Ziel</span></button>
+          </section>
+        </div>
+      </section>
+    </div>
   </main>
 
-  <!-- Floating command pill -->
-  <div class="command">
-    <button class="mic-btn" id="micBtn" title="Sprechen">
-      <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
-    </button>
-    <input type="text" id="textInput" placeholder="Sprich oder schreibe… frag mich alles" autocomplete="off" />
-    <button id="sendBtn" class="send-btn" title="Senden">➤</button>
-  </div>
+  <!-- Bottom ticker -->
+  <div class="ticker"><div class="ticker-track" id="ticker">SINGULARITY CORPORATIONS · NEURAL OPERATIONS CENTER · JENNY ONLINE · ALLE KERNSYSTEME NOMINAL · </div></div>
 
-  <!-- Chat panel -->
-  <aside class="panel" id="chatPanel">
-    <div class="panel-head"><h2>Gespräch</h2><button class="icon-btn" id="closeChat">✕</button></div>
-    <div class="panel-body"><div class="log" id="log"><p class="empty-hint">Hier landet euer Gespräch. Sprich mit mir oder tipp unten was ein.</p></div></div>
-    <div class="panel-foot"><button class="ghost-btn" id="clearChat">Verlauf löschen</button></div>
-  </aside>
-
-  <!-- Missions panel -->
-  <aside class="panel" id="goalsPanel">
-    <div class="panel-head"><h2>Missionen</h2><button class="icon-btn" id="closeGoals">✕</button></div>
-    <div class="panel-body" id="goalsList">
-      <p class="empty-hint">Noch keine Missionen. Gib Jenny ein Ziel und sie erstellt einen Plan.</p>
-    </div>
-  </aside>
-
-  <!-- Settings panel -->
+  <!-- Settings panel (slide-in) -->
   <aside class="panel" id="settingsPanel">
     <div class="panel-head"><h2>Einstellungen</h2><button class="icon-btn" id="closeSettings">✕</button></div>
     <div class="panel-body">
@@ -158,7 +183,7 @@
     <div class="boot-orb"></div>
     <h1 data-text="JENNY">JENNY</h1>
     <p class="boot-acro">J · E · N · N · Y</p>
-    <p>Neural Interface · tippe, um zu starten</p>
+    <p>Neural Operations Center · tippe, um zu starten</p>
     <button id="bootBtn">SYSTEM AKTIVIEREN</button>
     <div class="boot-foot">Voice &amp; AI Assistant</div>
   </div>

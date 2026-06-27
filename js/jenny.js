@@ -3,11 +3,12 @@
   const $ = (id) => document.getElementById(id);
 
   const el = {
-    statusDot: $('statusDot'), statusText: $('statusText'), clock: $('clock'),
-    orbCaption: $('orbCaption'), subtitle: $('subtitle'), log: $('log'), tiles: $('tiles'), tilesToggle: $('tilesToggle'),
+    statusDot: $('statusDot'), statusText: $('statusText'), clock: $('clock'), dateNow: $('dateNow'),
+    modeChip: $('modeChip'),
+    telStatus: $('telStatus'), telMode: $('telMode'), telNet: $('telNet'), telBat: $('telBat'), telCores: $('telCores'),
+    orbCaption: $('orbCaption'), subtitle: $('subtitle'), log: $('log'), tiles: $('tiles'), tilesToggle: $('tilesToggle'), clearChat: $('clearChat'),
     micBtn: $('micBtn'), textInput: $('textInput'), sendBtn: $('sendBtn'),
-    chatBtn: $('chatBtn'), chatBadge: $('chatBadge'), chatPanel: $('chatPanel'), closeChat: $('closeChat'), clearChat: $('clearChat'),
-    goalsBtn: $('goalsBtn'), goalsPanel: $('goalsPanel'), closeGoals: $('closeGoals'), goalsList: $('goalsList'),
+    goalsList: $('goalsList'), missionCount: $('missionCount'),
     settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), closeSettings: $('closeSettings'),
     brainMode: $('brainMode'), claudeSettings: $('claudeSettings'), apiKey: $('apiKey'), modelId: $('modelId'),
     testClaude: $('testClaude'), claudeResult: $('claudeResult'),
@@ -41,18 +42,33 @@
     window.JennyOrb.setState(s);
   }
 
-  // ---------- Live clock ----------
+  // ---------- Live clock + telemetry ----------
   function tickClock() {
-    if (el.clock) el.clock.textContent = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    const d = new Date();
+    if (el.clock) el.clock.textContent = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    if (el.dateNow) el.dateNow.textContent = d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase();
+  }
+  async function updateTelemetry() {
+    const online = navigator.onLine;
+    if (el.telStatus) el.telStatus.textContent = online ? 'Online' : 'Offline';
+    if (el.telNet) el.telNet.textContent = online ? 'Stabil' : 'Getrennt';
+    if (el.telCores) el.telCores.textContent = navigator.hardwareConcurrency ? navigator.hardwareConcurrency + ' Kerne' : '—';
+    if (el.telBat) {
+      if (navigator.getBattery) { try { const b = await navigator.getBattery(); el.telBat.textContent = Math.round(b.level * 100) + '%' + (b.charging ? ' ⚡' : ''); } catch (e) { el.telBat.textContent = 'n/a'; } }
+      else el.telBat.textContent = 'n/a';
+    }
+    const modeTxt = settings.brainMode === 'claude' ? 'Claude API' : 'Jenny KI';
+    if (el.telMode) el.telMode.textContent = modeTxt;
+    if (el.modeChip) el.modeChip.textContent = modeTxt;
   }
   tickClock(); setInterval(tickClock, 15000);
+  setInterval(updateTelemetry, 30000);
 
   // ---------- Voice config sync ----------
   function applyVoiceConfig() {
     JennyVoice.setSpeechConfig({ voiceURI: settings.voiceURI, pitch: settings.pitch, rate: settings.rate, enabled: settings.tts });
   }
 
-  // Score a voice for "young, natural, female, German" — higher is better
   const FEMALE = /(female|frau|woman|girl|katja|vicki|hedda|marlene|petra|helena|ingrid|sara|lena|emma|mia|klara|hannah|amelie|paulina|anna|sandy|google deutsch|aria|jenny|sonia|seraphina)/i;
   const MALE = /(male|mann|stefan|conrad|klaus|hans|daniel|markus|google deutsch male)/i;
   const QUALITY = /(natural|neural|online|premium|enhanced|google|wavenet)/i;
@@ -74,7 +90,6 @@
     if (!pool.length) return null;
     return pool.slice().sort((a, b) => scoreVoice(b) - scoreVoice(a))[0].voiceURI;
   }
-
   function populateVoices() {
     const voices = JennyVoice.getVoices();
     el.voiceSelect.innerHTML = '';
@@ -100,7 +115,7 @@
   }
   if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = populateVoices;
 
-  // ---------- Transcript (chat window) ----------
+  // ---------- Transcript ----------
   function addBubble(role, text) {
     if (!text) return;
     if (logEmpty) { el.log.innerHTML = ''; logEmpty = false; }
@@ -110,8 +125,6 @@
     el.log.appendChild(b);
     while (el.log.children.length > 40) el.log.removeChild(el.log.firstChild);
     el.log.scrollTop = el.log.scrollHeight;
-    // unread badge when chat panel is closed
-    if (role === 'jenny' && !el.chatPanel.classList.contains('open')) el.chatBadge.classList.add('show');
   }
 
   // ---------- Agent: mission awareness ----------
@@ -126,7 +139,7 @@
     addBubble('me', text);
     el.subtitle.textContent = '';
 
-    // Agent follow-up: questions about the plan/progress get answered from missions.
+    // Agent follow-up: questions about the plan/progress answered from missions.
     if (/(mission|missionen|fortschritt|wie weit|nächste[rsn]? schritt|was steht an|als nächstes|to-?do|aufgaben|wo stehen wir|wie ist der plan|unser plan)/i.test(text)) {
       const m = activeMission();
       if (m) {
@@ -137,7 +150,6 @@
           : `Unsere Mission „${m.title}“ ist komplett durch. Sauber. Worauf gehen wir als Nächstes?`;
         history.push({ role: 'user', content: text });
         history.push({ role: 'assistant', content: reply });
-        openPanel(el.goalsPanel);
         speak(reply);
         busy = false;
         return;
@@ -161,7 +173,7 @@
     busy = false;
   }
 
-  // ---------- Action engine (Jarvis-style abilities) ----------
+  // ---------- Action engine ----------
   function beep(times = 2) {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -256,12 +268,12 @@
     missions.unshift(m);
     store.set('missions', missions);
     renderMissions();
-    openPanel(el.goalsPanel);
   }
 
   function renderMissions() {
+    if (el.missionCount) el.missionCount.textContent = missions.length;
     if (!missions.length) {
-      el.goalsList.innerHTML = '<p class="empty-hint">Noch keine Missionen. Gib Jenny ein Ziel und sie erstellt einen Plan.</p>';
+      el.goalsList.innerHTML = '<p class="empty-hint">Noch keine Missionen. Sag mir dein Ziel, ich bau den Plan.</p>';
       return;
     }
     el.goalsList.innerHTML = '';
@@ -289,13 +301,9 @@
   }
   function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
-  // ---------- Panels ----------
-  function openPanel(p) {
-    document.querySelectorAll('.panel').forEach(x => { if (x !== p) x.classList.remove('open'); });
-    p.classList.add('open');
-    if (p === el.chatPanel) { el.chatBadge.classList.remove('show'); el.log.scrollTop = el.log.scrollHeight; }
-  }
-  function closePanel(p) { p.classList.remove('open'); }
+  // ---------- Settings panel (slide-in) ----------
+  function openSettings() { el.settingsPanel.classList.add('open'); }
+  function closeSettings() { el.settingsPanel.classList.remove('open'); }
 
   // ---------- Wire voice events ----------
   JennyVoice.on({
@@ -330,13 +338,9 @@
   el.sendBtn.onclick = () => { const v = el.textInput.value.trim(); el.textInput.value = ''; handleInput(v); };
   el.textInput.addEventListener('keydown', e => { if (e.key === 'Enter') el.sendBtn.click(); });
 
-  el.chatBtn.onclick = () => openPanel(el.chatPanel);
-  el.closeChat.onclick = () => closePanel(el.chatPanel);
   el.clearChat.onclick = () => { history = []; logEmpty = true; el.log.innerHTML = '<p class="empty-hint">Verlauf gelöscht. Frag mich was Neues.</p>'; };
-  el.goalsBtn.onclick = () => openPanel(el.goalsPanel);
-  el.closeGoals.onclick = () => closePanel(el.goalsPanel);
-  el.settingsBtn.onclick = () => openPanel(el.settingsPanel);
-  el.closeSettings.onclick = () => closePanel(el.settingsPanel);
+  el.settingsBtn.onclick = openSettings;
+  el.closeSettings.onclick = closeSettings;
 
   // settings
   el.brainMode.value = settings.brainMode;
@@ -347,7 +351,7 @@
   el.pitch.value = settings.pitch; el.pitchVal.textContent = settings.pitch;
   el.rate.value = settings.rate; el.rateVal.textContent = settings.rate;
 
-  el.brainMode.onchange = () => { settings.brainMode = el.brainMode.value; store.set('brainMode', settings.brainMode); el.claudeSettings.classList.toggle('hidden', settings.brainMode !== 'claude'); };
+  el.brainMode.onchange = () => { settings.brainMode = el.brainMode.value; store.set('brainMode', settings.brainMode); el.claudeSettings.classList.toggle('hidden', settings.brainMode !== 'claude'); updateTelemetry(); };
   el.apiKey.onchange = () => { settings.apiKey = el.apiKey.value.trim(); store.set('apiKey', settings.apiKey); };
   el.modelId.onchange = () => { settings.modelId = el.modelId.value.trim(); store.set('modelId', settings.modelId); };
   el.voiceSelect.onchange = () => { settings.voiceURI = el.voiceSelect.value; store.set('voiceURI', settings.voiceURI); applyVoiceConfig(); };
@@ -356,7 +360,7 @@
   el.rate.oninput = () => { settings.rate = +el.rate.value; el.rateVal.textContent = settings.rate; store.set('rate', settings.rate); applyVoiceConfig(); };
   el.testVoice.onclick = () => { applyVoiceConfig(); JennyVoice.speak("Hi ich bin Jenny. Schön dass du da bist — sag mir einfach was du brauchst."); };
 
-  // feature tiles (Kacheln)
+  // feature tiles
   if (el.tiles) el.tiles.querySelectorAll('.tile').forEach(c => c.onclick = () => {
     if (c.dataset.fill != null) { el.textInput.value = c.dataset.fill; el.textInput.focus(); }
     else if (c.dataset.q) handleInput(c.dataset.q);
@@ -407,6 +411,7 @@
     populateVoices();
     applyVoiceConfig();
     renderMissions();
+    updateTelemetry();
     setState('idle');
     setTimeout(() => {
       const m = activeMission();
