@@ -4,7 +4,7 @@
 
   const el = {
     statusDot: $('statusDot'), statusText: $('statusText'), clock: $('clock'),
-    orbCaption: $('orbCaption'), subtitle: $('subtitle'), log: $('log'), tiles: $('tiles'),
+    orbCaption: $('orbCaption'), subtitle: $('subtitle'), log: $('log'), tiles: $('tiles'), tilesToggle: $('tilesToggle'),
     micBtn: $('micBtn'), textInput: $('textInput'), sendBtn: $('sendBtn'),
     chatBtn: $('chatBtn'), chatBadge: $('chatBadge'), chatPanel: $('chatPanel'), closeChat: $('closeChat'), clearChat: $('clearChat'),
     goalsBtn: $('goalsBtn'), goalsPanel: $('goalsPanel'), closeGoals: $('closeGoals'), goalsList: $('goalsList'),
@@ -114,6 +114,10 @@
     if (role === 'jenny' && !el.chatPanel.classList.contains('open')) el.chatBadge.classList.add('show');
   }
 
+  // ---------- Agent: mission awareness ----------
+  function activeMission() { return missions.find(m => m.steps.some(s => !s.done)) || null; }
+  function nextStep(m) { const s = m && m.steps.find(x => !x.done); return s ? s.text : null; }
+
   // ---------- Core interaction ----------
   let busy = false;
   async function handleInput(text) {
@@ -121,6 +125,25 @@
     busy = true;
     addBubble('me', text);
     el.subtitle.textContent = '';
+
+    // Agent follow-up: questions about the plan/progress get answered from missions.
+    if (/(mission|missionen|fortschritt|wie weit|nächste[rsn]? schritt|was steht an|als nächstes|to-?do|aufgaben|wo stehen wir|wie ist der plan|unser plan)/i.test(text)) {
+      const m = activeMission();
+      if (m) {
+        const step = nextStep(m);
+        const done = m.steps.filter(s => s.done).length;
+        const reply = step
+          ? `Unsere Mission „${m.title}“ läuft — ${done} von ${m.steps.length} erledigt. Nächster Schritt: ${step}. Sollen wir den angehen?`
+          : `Unsere Mission „${m.title}“ ist komplett durch. Sauber. Worauf gehen wir als Nächstes?`;
+        history.push({ role: 'user', content: text });
+        history.push({ role: 'assistant', content: reply });
+        openPanel(el.goalsPanel);
+        speak(reply);
+        busy = false;
+        return;
+      }
+    }
+
     setState('thinking', 'Verarbeite…');
 
     const result = await JennyBrain.respond(text, { history, settings });
@@ -339,6 +362,15 @@
     else if (c.dataset.q) handleInput(c.dataset.q);
   });
 
+  // collapsible tiles — default collapsed, remember last state
+  function applyTilesState(open) {
+    el.tiles.classList.toggle('collapsed', !open);
+    el.tilesToggle.classList.toggle('open', open);
+  }
+  let tilesOpen = store.get('tilesOpen', false);
+  applyTilesState(tilesOpen);
+  el.tilesToggle.onclick = () => { tilesOpen = !tilesOpen; store.set('tilesOpen', tilesOpen); applyTilesState(tilesOpen); };
+
   // Claude connection test
   el.testClaude.onclick = async () => {
     const key = el.apiKey.value.trim(), model = el.modelId.value.trim() || 'claude-sonnet-4-5';
@@ -376,7 +408,15 @@
     applyVoiceConfig();
     renderMissions();
     setState('idle');
-    setTimeout(() => speak("Hey ich bin Jenny und ab jetzt am Start. Frag mich einfach alles — Wissen, Wetter, Rechnen, Übersetzen, Timer oder sag mir ein Ziel. Womit fangen wir an?"), 400);
+    setTimeout(() => {
+      const m = activeMission();
+      if (m) {
+        const step = nextStep(m);
+        speak(`Willkommen zurück. Unsere Mission „${m.title}“ läuft noch — nächster Schritt: ${step}. Sollen wir den anpacken oder hast du was anderes?`);
+      } else {
+        speak("Hey, ich bin Jenny — dein Agent hier bei Singularity Corporations. Sag mir dein Ziel, dann mach ich den Plan und treibe ihn voran. Womit legen wir los?");
+      }
+    }, 400);
     try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
   };
 

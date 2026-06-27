@@ -8,6 +8,11 @@ window.JennyVoice = (function () {
   let wantListen = false;         // conversation mode: should we keep listening
   let speaking = false;
   let handlers = {};
+  // Wait for a real pause before sending, so a whole sentence is captured.
+  let finalBuf = '';              // accumulated final text of the current sentence
+  let silenceTimer = null;        // fires once the user stops talking
+  const SILENCE_MS = 1600;        // pause length that counts as "sentence finished"
+  function clearSilence() { if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; } }
 
   // ---- Mic level meter (Web Audio) ----
   let audioCtx, analyser, micStream, levelRAF;
@@ -46,22 +51,31 @@ window.JennyVoice = (function () {
     if (!SR) return false;
     recognition = new SR();
     recognition.lang = 'de-DE';
-    recognition.continuous = false;     // one phrase per turn, we re-arm manually
+    recognition.continuous = true;      // keep listening through pauses within a sentence
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (e) => {
-      let finalText = '', interim = '';
+      let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t; else interim += t;
+        if (e.results[i].isFinal) finalBuf += t + ' '; else interim += t;
       }
-      if (interim) handlers.partial && handlers.partial(interim);
-      if (finalText.trim()) {
-        // Got a phrase: stop this turn, let controller process it.
-        try { recognition.stop(); } catch (e) {}
-        handlers.result && handlers.result(finalText.trim());
-      }
+      // Show the whole sentence so far (final + what's still being said).
+      const live = (finalBuf + interim).trim();
+      if (live) handlers.partial && handlers.partial(live);
+
+      // Any speech activity resets the countdown — only send after a real pause,
+      // so Jenny waits until the sentence is actually finished.
+      clearSilence();
+      silenceTimer = setTimeout(() => {
+        const text = finalBuf.trim();
+        finalBuf = '';
+        if (text) {
+          try { recognition.stop(); } catch (e) {}
+          handlers.result && handlers.result(text);
+        }
+      }, SILENCE_MS);
     };
 
     recognition.onerror = (ev) => {
@@ -82,6 +96,7 @@ window.JennyVoice = (function () {
 
     recognition.onend = () => {
       listening = false;
+      clearSilence();
       stopLevelMeter();
       // Re-arm if we're in conversation mode and not currently speaking
       if (wantListen && !speaking) {
@@ -113,6 +128,8 @@ window.JennyVoice = (function () {
   }
   function stopConversation() {
     wantListen = false;
+    clearSilence();
+    finalBuf = '';
     if (recognition && listening) { try { recognition.stop(); } catch (e) {} }
     stopLevelMeter();
     handlers.end && handlers.end();

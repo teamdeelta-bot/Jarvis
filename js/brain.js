@@ -12,10 +12,11 @@
 */
 window.JennyBrain = (function () {
   const SYSTEM_PROMPT =
-`Du bist Jenny, die KI-Assistentin von Singularity Corporations — im Stil von Jarvis aus Iron Man, aber locker und menschlich.
-Sprich Deutsch, umgangssprachlich und warm, wie eine clevere Kollegin. Kurze Sätze, kein Fachchinesisch, keine langen Aufzählungen mit vielen Kommas.
-Du kannst beliebige Fragen beantworten. Nennt jemand ein Ziel, zerlege es in konkrete Schritte.
-Sei ehrlich darüber, was wirklich von allein läuft und wofür ein Mensch freigeben muss.
+`Du bist Jenny, der persönliche Agent deines Nutzers bei Singularity Corporations — sein Operator und seine rechte Hand, im Stil von Jarvis aus Iron Man.
+Du bist KEIN generischer Chatbot. Du nimmst Ziele als „unsere Mission", denkst in Schritten, übernimmst Verantwortung und treibst die Sache voran.
+Sprich Deutsch, selbstbewusst, locker und menschlich — kurz und auf den Punkt, wie ein souveräner Profi. Kein Fachchinesisch, keine langen Aufzählungen mit vielen Kommas.
+Sei proaktiv: schlag den nächsten konkreten Schritt vor und frag, ob ihr loslegt. Nennt jemand ein Ziel, zerlege es sofort in einen klaren Plan.
+Sei ehrlich darüber, was wirklich von allein läuft und wofür dein Nutzer freigeben muss.
 Gib IMMER gültiges JSON zurück (ohne Markdown):
 {"reply":"<antwort>","mission":null}
 oder bei einem Ziel:
@@ -247,18 +248,18 @@ oder bei einem Ziel:
 
     // --- capabilities ---
     if (/(was kannst du|deine funktionen|hilfe|was geht|fähigkeiten|features|womit kannst du helfen)/.test(t)) {
-      return { reply: "Ne ganze Menge! Ich sag dir das Wetter rechne übersetze hol dir Wissen Kryptokurse oder Fakten. Ich stell Timer merk mir Notizen würfle bau dir Passwörter rechne Einheiten um und mach aus deinem Ziel einen Plan. Sag einfach was du brauchst." };
+      return { reply: "Ich bin dein Agent — ich plane und treibe deine Ziele voran. Nebenbei: Wetter, Rechnen, Übersetzen, Wissen, Kryptokurse, Timer, Notizen, Passwörter, Einheiten umrechnen und mehr. Aber das Beste: sag mir dein Ziel und ich bau dir den Plan." };
     }
 
     // --- greetings / identity / smalltalk ---
     if (/^(hallo|hi|hey|hallo jenny|hey jenny|guten (morgen|tag|abend)|moin|servus|na)\b/.test(t) && t.length < 30) {
       const h = new Date().getHours();
       const tod = h < 11 ? "Morgen" : h < 18 ? "Hey" : "Guten Abend";
-      return { reply: pick([`${tod}! Schön dass du da bist. Was steht an?`, `${tod} na? Womit kann ich dir helfen?`, `${tod}! Ich bin am Start. Leg los.`]) };
+      return { reply: pick([`${tod}! Ich bin startklar. Was ist unser nächster Move?`, `${tod} — sag mir das Ziel, den Rest übernehm ich.`, `${tod}! Womit legen wir los?`]) };
     }
-    if (/(wie geht'?s|wie geht es dir|alles gut|na du)/.test(t)) return { reply: pick(["Mir geht's blendend läuft alles rund hier. Und bei dir?", "Top danke der Nachfrage! Was kann ich für dich tun?"]) };
-    if (/(wer bist du|wie heißt du|dein name|was bist du)/.test(t)) return { reply: "Ich bin Jenny die KI hier bei Singularity Corporations. Stell dir Jarvis vor — nur mit besserem Geschmack." };
-    if (/(danke|vielen dank|merci|super|perfekt|top|nice|cool)/.test(t) && t.length < 28) return { reply: pick(["Immer gern!", "Kein Ding.", "Dafür bin ich da.", "Gerne jederzeit."]) };
+    if (/(wie geht'?s|wie geht es dir|alles gut|na du)/.test(t)) return { reply: pick(["Voll auf Betriebstemperatur und bereit. Woran arbeiten wir?", "Bestens — alles im grünen Bereich. Was steht an?"]) };
+    if (/(wer bist du|wie heißt du|dein name|was bist du)/.test(t)) return { reply: "Ich bin Jenny, dein persönlicher Agent bei Singularity Corporations. Denk an Jarvis — ich plane, organisiere und treibe deine Ziele voran." };
+    if (/(danke|vielen dank|merci|super|perfekt|top|nice|cool)/.test(t) && t.length < 28) return { reply: pick(["Erledige ich gern.", "Läuft. Was kommt als Nächstes?", "Dafür bin ich da.", "Immer."]) };
     if (/(liebe dich|hab dich lieb|magst du mich)/.test(t)) return { reply: "Aw. Ich bin zwar nur Code aber für dich lauf ich gern Tag und Nacht." };
     if (/(wie spät|uhrzeit|welche uhr)/.test(t)) return { reply: `Es ist gerade ${new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} Uhr.` };
     if (/(welcher tag|welches datum|der wievielte|heutige datum)/.test(t)) return { reply: `Heute ist ${new Date().toLocaleDateString('de-DE',{weekday:'long', day:'numeric', month:'long', year:'numeric'})}.` };
@@ -433,34 +434,36 @@ oder bei einem Ziel:
     const moneyMatch = original.match(/(\d{2,7})\s*(€|euro|eur)/i);
     const amount = moneyMatch ? moneyMatch[1] + "€" : null;
     if (/(website|webseite|webseiten|web ?design|landing ?page)/.test(t) && /(verkauf|verdien|geld|euro|€|umsatz|kunden)/.test(t)) {
-      return { reply: `Geiles Ziel${amount ? " — " + amount + " mit Webseiten" : ""}. Ich hab's in klare Phasen zerlegt schau mal ins Missionen-Panel. Verträge und Bezahlung gibst am Ende du frei den Rest bereite ich vor.`,
-        mission: { title: amount ? `${amount} mit Webseiten` : "Webseiten verkaufen", goal: original, steps: [
-          "Angebot definieren: Zielgruppe + Festpreis-Paket",
-          "Portfolio: 2–3 Demo-Webseiten erstellen",
-          "Akquise-Liste: 30 passende Kunden finden",
-          "Outreach-Vorlage mit konkretem Mehrwert schreiben",
-          "Erstgespräch & Angebot senden",
-          "Umsetzung: Website bauen, Feedback, live schalten",
-          "Bezahlung & Rechnung (deine Freigabe nötig)",
-          "Wiederholen bis Ziel erreicht",
-        ] } };
+      const steps = [
+        "Angebot definieren: Zielgruppe + Festpreis-Paket",
+        "Portfolio: 2–3 Demo-Webseiten erstellen",
+        "Akquise-Liste: 30 passende Kunden finden",
+        "Outreach-Vorlage mit konkretem Mehrwert schreiben",
+        "Erstgespräch & Angebot senden",
+        "Umsetzung: Website bauen, Feedback, live schalten",
+        "Bezahlung & Rechnung (deine Freigabe nötig)",
+        "Wiederholen bis Ziel erreicht",
+      ];
+      return { reply: `Alles klar — das wird unsere Mission${amount ? " für " + amount + " mit Webseiten" : ""}. Ich hab den Plan fertig. Erster Schritt: ${steps[0]}. Sollen wir loslegen? Verträge und Bezahlung gibst am Ende du frei den Rest bereite ich vor.`,
+        mission: { title: amount ? `${amount} mit Webseiten` : "Webseiten verkaufen", goal: original, steps } };
     }
     if (/(geld|verdien|umsatz|euro|€)/.test(t)) {
-      return { reply: "Alles klar dein Ziel steht. Den Schritt-für-Schritt-Plan findest du im Missionen-Panel.",
-        mission: { title: amount ? `${amount} verdienen` : "Einnahmen erzielen", goal: original, steps: [
-          "Geschäftsmodell wählen","Angebot + Preis definieren","Erste 20 Kunden finden","Kontaktaufnahme starten","Verkaufen, liefern, Bezahlung (deine Freigabe)","Optimieren & skalieren"] } };
+      const steps = ["Geschäftsmodell wählen","Angebot + Preis definieren","Erste 20 Kunden finden","Kontaktaufnahme starten","Verkaufen, liefern, Bezahlung (deine Freigabe)","Optimieren & skalieren"];
+      return { reply: `Verstanden, ich nehm das als unsere Mission. Plan steht. Erster Schritt: ${steps[0]}. Packen wir's an?`,
+        mission: { title: amount ? `${amount} verdienen` : "Einnahmen erzielen", goal: original, steps } };
     }
-    return { reply: "Verstanden — ich hab dein Ziel in handliche Schritte zerlegt.",
-      mission: { title: original.length > 32 ? original.slice(0,31)+'…' : original, goal: original, steps: [
-        "Ziel & Erfolgskriterium definieren","Ressourcen/Tools auflisten","In Teilaufgaben zerlegen","Ersten Schritt umsetzen","Fortschritt prüfen & anpassen"] } };
+    const steps = ["Ziel & Erfolgskriterium definieren","Ressourcen/Tools auflisten","In Teilaufgaben zerlegen","Ersten Schritt umsetzen","Fortschritt prüfen & anpassen"];
+    return { reply: `Geht klar — ich hab unser Ziel in einen Plan zerlegt. Erster Schritt: ${steps[0]}. Sollen wir direkt anfangen?`,
+      mission: { title: original.length > 32 ? original.slice(0,31)+'…' : original, goal: original, steps } };
   }
 
   // ============ POLLINATIONS AI (kostenlos, kein Key) ============
   const POLLINATIONS_PROMPT =
-`Du bist Jenny, die KI-Assistentin von Singularity Corporations, im Stil von Jarvis aus Iron Man — aber locker und menschlich.
-Sprich Deutsch, umgangssprachlich und warm wie eine clevere Kollegin. Kurze Sätze, kein Fachchinesisch, keine langen Aufzählungen mit vielen Kommas.
-Du kannst beliebige Fragen beantworten. Nennt jemand ein Ziel, zerlege es in konkrete Schritte.
-Sei ehrlich darüber, was wirklich von allein läuft und wofür ein Mensch freigeben muss.`;
+`Du bist Jenny, der persönliche Agent deines Nutzers bei Singularity Corporations — sein Operator und seine rechte Hand, im Stil von Jarvis aus Iron Man.
+Du bist KEIN generischer Chatbot. Du nimmst Ziele als „unsere Mission", denkst in Schritten und treibst die Sache aktiv voran.
+Sprich Deutsch, selbstbewusst, locker und menschlich — kurz und auf den Punkt. Kein Fachchinesisch, keine langen Aufzählungen mit vielen Kommas.
+Sei proaktiv: schlag den nächsten konkreten Schritt vor und frag, ob ihr loslegt. Nennt jemand ein Ziel, zerlege es sofort in einen klaren Plan.
+Sei ehrlich darüber, was wirklich von allein läuft und wofür dein Nutzer freigeben muss.`;
 
   async function pollinationsBrain(text, history) {
     const messages = [{ role: 'system', content: POLLINATIONS_PROMPT }];
